@@ -39,7 +39,7 @@ def remove_frequency_features(vocab_partial, word_vectors, word2index, word2inde
                                                                                                                                                                                                                                                                                                                                                    
           return word_vec_frequency
 
-def hard_debias(wv, w2i, w2i_partial, vocab_partial, component_ids, definitional_pairs):
+def double_hard_debias(wv, w2i, w2i_partial, vocab_partial, component_ids, definitional_pairs):
         vectors=wv
         # get rid of frequency features
         vectors=remove_frequency_features(vocab_partial, wv, w2i, w2i_partial, component_ids)
@@ -57,7 +57,7 @@ def getting_optimal_direction(vectors, word2idx, w2i_partial, vocab_partial, mal
         for component_id in range(20):
           print(f'Component: {component_id}', end=', ')
           
-          wv_debiased = hard_debias(vectors, word2idx, w2i_partial, vocab_partial, component_ids = [component_id], definitional_pairs= definitional_pairs)
+          wv_debiased = double_hard_debias(vectors, word2idx, w2i_partial, vocab_partial, component_ids = [component_id], definitional_pairs= definitional_pairs)
           _, _, _, precision = utils.cluster_and_evaluate(male_words + female_words, 
                                 utils.extract_vectors(male_words + female_words, wv_debiased, w2i_partial), 1, y_true)
           precisions.append(precision)

@@ -43,24 +43,24 @@ def identify_bias_subspace(vector_dict, def_sets, subspace_dim, centralizing=Tru
     matrix = []
     #Loop through each set to get a list of all the words that are also in the vocabulary
     for k, v in def_sets.items():
-        wSet = []
-        for w in v:
-            try:
-                wSet.append(vector_dict[w])
-            except KeyError as e:
-                pass
-        if wSet:
-          
-          set_vectors = np.array(wSet)
-          #Centralized vectors by subtracting their mean
-          if centralizing:
-            means[k] = np.mean(set_vectors, axis=0)
-            diffs = set_vectors - means[k]
-            matrix.append(diffs)
-          else:
-            if len(wSet)==2:
-                diffs=np.array([wSet[0]-wSet[1]])
-                matrix.append(diffs)
+      wSet = []
+      for w in v:
+        try:
+          wSet.append(vector_dict[w])
+        except KeyError as e:
+          pass
+      if wSet: 
+        set_vectors = np.array(wSet)
+        #Centralized vectors by subtracting their mean
+        if centralizing:
+          mean_vector = np.mean(set_vectors, axis=0)
+          means[k]=mean_vector
+          diffs = set_vectors - mean_vector
+          matrix.append(diffs)
+        #else:
+         # if len(wSet)==2:
+          #  diffs=np.array([wSet[0]-wSet[1]])
+           # matrix.append(diffs)
 
     matrix = np.concatenate(matrix)
     print('number of words considered:',len(matrix))  
@@ -71,7 +71,7 @@ def identify_bias_subspace(vector_dict, def_sets, subspace_dim, centralizing=Tru
     print('Running PCA with', subspace_dim, 'components')
     pca.fit(matrix)
 
-    return pca.components_[0]
+    return pca.components_
 
 def neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction): 
     """
@@ -137,21 +137,30 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_
     """    
         
     vectors=wv
+
     #Gender direction
+   
+
     bias_direction=identify_bias_subspace(vector_dict_partial, def_sets, subspace_dim, centralizing=True)
+
+    #Following Manzini
+    if bias_direction.ndim == 2:
+        bias_direction = np.squeeze(bias_direction)
+    elif bias_direction.ndim != 2:
+        raise ValueError("bias subspace should be either a matrix or vector")
     
     if str(normalize).lower()=="before":
       vectors= utils.normalize(vectors) #Following Andrew Ng's approach
       
 
-    wv_debiased=neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction.T)
+    wv_debiased=neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction)
     if str(normalize).lower()=="after":
       wv_debiased=utils.normalize(wv_debiased) #Following Bolukbasi
      
-    wv_debiased=equalize_words(wv_debiased, vocab_partial, w2i_partial, equalizing_list, bias_direction.T)
+    wv_debiased=equalize_words(wv_debiased, vocab_partial, w2i_partial, equalizing_list, bias_direction)
 
     if str(normalize).lower()=="after":
       wv_debiased=utils.normalize(wv_debiased)#Following Bolukbasi
       
-    return wv_debiased
+    return wv_debiased, vocab_partial, w2i_partial
 

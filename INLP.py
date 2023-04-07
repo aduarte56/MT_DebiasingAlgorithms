@@ -1,6 +1,6 @@
 import numpy as np
 import scipy
-import tqdm
+from tqdm import tqdm
 import string
 import warnings
 import random

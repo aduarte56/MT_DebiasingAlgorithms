@@ -127,3 +127,42 @@ def get_bias_score_df_from_list(bias_scores_original, debiased_scores, word_list
     full_scores_df_long["value"].astype("float")
 
     return full_scores_df_long
+
+
+from sklearn.decomposition import PCA
+def perform_PCA_pairs(pairs, word_vectors, word2index, num_components=2):
+        
+    vector_matrix = []
+    count = 0
+    
+    if type(pairs[0]) is list:
+        #Centering the gendered pairs (so that the )
+        for feminine_word, masculine_word in pairs:
+            if not (feminine_word in word2index and masculine_word in word2index): 
+              continue
+            center = (word_vectors[word2index[feminine_word], :] + word_vectors[word2index[masculine_word], :])/2
+            vector_matrix.append(word_vectors[word2index[feminine_word], :] - center)
+            vector_matrix.append(word_vectors[word2index[masculine_word], :] - center)
+            count += 1
+            
+    else:
+        for word in pairs:
+            if not (word in word2index):
+               continue
+            vector_matrix.append(word_vectors[word2index[word], :])
+            count += 1
+        
+        vector_matrix = np.array(vector_matrix)
+        vectors_mean = np.mean(np.array(vector_matrix), axis=0)
+        wv_hat = np.zeros(vector_matrix.shape).astype(float)
+    
+        for i in range(len(vector_matrix)):
+            wv_hat[i, :] = vector_matrix[i, :] - vectors_mean
+        vector_matrix = wv_hat
+            
+    matrix = np.array(vector_matrix)
+    pca = PCA(n_components = num_components)
+    pca.fit(matrix)
+    #print('pairs used in PCA: ', count)
+    #print(pca.explained_variance_ratio_)
+    return pca
