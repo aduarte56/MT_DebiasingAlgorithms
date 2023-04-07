@@ -1,0 +1,10 @@
+notebook
+ipykernel
+matplotlib
+numpy
+scikit-learn 
+scipy
+tqdm
+torch
+gensim
+pandas
