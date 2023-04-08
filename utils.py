@@ -40,6 +40,12 @@ def finding_k_nearest_neighbors():
     pass
 
 
+def extract_vectors(words, vectors, w2i):
+    
+    X = [vectors[w2i[x],:] for x in words]
+    
+    return X
+
 
 from sklearn.cluster import KMeans
 def cluster_and_evaluate(X, random_state, y_true, num=2):

@@ -164,3 +164,7 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_
       
     return wv_debiased, vocab_partial, w2i_partial
 
+def get_debiased_dict(wv_debiased, w2i_partial):
+   debiased_dict={}
+   for index, word in w2i_partial.items():
+      debiased_dict[word]=wv_debiased[w2i_partial[word],:]

@@ -21,7 +21,7 @@ def plot_bias_bar(df_long):
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
 
-def visualize(self, vectors, y_true, y_pred, ax, title):
+def visualize(vectors, y_true, y_pred, ax, title):
     # perform TSNE
     vectors =utils.normalize(vectors)
     X_embedded = TSNE(n_components=2, random_state=RANDOM_STATE).fit_transform(vectors)
@@ -33,7 +33,7 @@ def visualize(self, vectors, y_true, y_pred, ax, title):
     
     return ax
 
-def cluster_and_visualize(self, words, X1, title, y_true, num=2):
+def cluster_and_visualize(words, X1, title, y_true, num=2):
     
     kmeans_1 = KMeans(n_clusters=num, random_state=RANDOM_STATE).fit(X1)
     y_pred_1 = kmeans_1.predict(X1)
@@ -41,7 +41,7 @@ def cluster_and_visualize(self, words, X1, title, y_true, num=2):
     print('precision', max(sum(correct)/float(len(correct)), 1 - sum(correct)/float(len(correct))))
     
     fig, axs = plt.subplots(1, 1, figsize=(6, 3))
-    ax1 = self.visualize(X1, y_true, y_pred_1, axs, title)
+    ax1 = visualize(X1, y_true, y_pred_1, axs, title)
 
 
 def tsne(vecs, labels, title="", ind2label = None, words = None, metric = "l2"):

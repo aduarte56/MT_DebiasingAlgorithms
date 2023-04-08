@@ -8,3 +8,4 @@ tqdm
 torch
 gensim
 pandas
+plotly_express
