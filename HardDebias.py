@@ -13,7 +13,6 @@ functions:
 """
 
 
-
 import numpy as np
 import utils
 from sklearn.decomposition import PCA
@@ -57,13 +56,13 @@ def identify_bias_subspace(vector_dict, def_sets, subspace_dim, centralizing=Tru
           means[k]=mean_vector
           diffs = set_vectors - mean_vector
           matrix.append(diffs)
-        #else:
-         # if len(wSet)==2:
-          #  diffs=np.array([wSet[0]-wSet[1]])
-           # matrix.append(diffs)
+        else:
+          if len(wSet)==2:
+            diffs=np.array([wSet[0]-wSet[1]])
+            matrix.append(diffs)
 
     matrix = np.concatenate(matrix)
-    print('number of words considered:',len(matrix))  
+    print('Length of vectors set:',len(matrix))  
 
     matrix = np.array(matrix)
     #Run PCA on the vectors of the definitional sets. 
@@ -123,7 +122,7 @@ def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_di
         debiased_vectors[w2i_partial[b], :] = -z * bias_direction + mean_orth
     return debiased_vectors
 
-def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_list, def_sets, subspace_dim, normalize=None):
+def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_list, def_sets, subspace_dim, normalize=None, centralizing=True):
     """
     Hard debiasing algorithm following Bolukbasi's Hard-Debias algorithm. Calls other functions 
     to identify the bias subspace, neutralize words and equalize words.
@@ -135,13 +134,9 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_
     w2i_partial - dictionary that maps words to their indices in the vocabulary
     bias_direction - bias subspace
     """    
-        
-    vectors=wv
-
+    vectors=wv.copy()
     #Gender direction
-   
-
-    bias_direction=identify_bias_subspace(vector_dict_partial, def_sets, subspace_dim, centralizing=True)
+    bias_direction=identify_bias_subspace(vector_dict_partial, def_sets, subspace_dim, centralizing=centralizing)
 
     #Following Manzini
     if bias_direction.ndim == 2:
@@ -164,7 +159,9 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_
       
     return wv_debiased, vocab_partial, w2i_partial
 
+# get a dictionary with the debiased vectors as values and the words as keys, using debiased_vectors, debiased_vocab, debiased_word2idx from hard-debias function.
 def get_debiased_dict(wv_debiased, w2i_partial):
-   debiased_dict={}
-   for index, word in w2i_partial.items():
-      debiased_dict[word]=wv_debiased[w2i_partial[word],:]
+   debiased_dict = {}
+   for word, index in w2i_partial.items():
+      debiased_dict[word] = wv_debiased[index, :]
+   return debiased_dict
