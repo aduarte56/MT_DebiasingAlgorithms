@@ -101,8 +101,8 @@ class Embeddings(object):
 
   def save_in_word2vec_format(self, vecs: np.ndarray, words: np.ndarray, fname: str):
     with open(fname, "w", encoding = "utf-8") as f:
-        f.write(str(len(vecs)) + " " + "300" + "\n")
-        for i, (v,w) in tqdm.tqdm_notebook(enumerate(zip(vecs, words))):
+        f.write(str(len(vecs)) + " " + str(vecs.shape[1]) + "\n")
+        for i, (v,w) in tqdm(enumerate(zip(vecs, words))):
             vec_as_str = " ".join([str(x) for x in v])
             f.write(w + " " + vec_as_str + "\n")
 

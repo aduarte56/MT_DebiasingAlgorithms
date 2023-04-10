@@ -69,12 +69,38 @@ def remove_vector_projection(vector1, vector2):
 
 # Function to compute the gender bias of a word. 
 # Outputs a dictionary with words as keys and gender bias as values
-def compute_bias(dict_vectors, he_embedding, she_embedding):
+def compute_gender_simple_bias(dict_vectors, he_embedding, she_embedding):
     gender_bias = {}
     for word in dict_vectors.keys():
         vector = dict_vectors[word]
         gender_bias[word] = cosine_similarity(vector, she_embedding) - cosine_similarity(vector, he_embedding)
     return gender_bias
+
+
+def compute_direct_bias(dict_vectors, word_list, bias_subspace):
+    directBias = {}
+    word_list = set(word_list)
+    for word in dict_vectors.keys():
+        if word not in word_list:
+            continue
+        vector = dict_vectors[word]
+        #directBias[word] = np.linalg.norm(
+            #cosine_similarity(vector, np.squeeze(bias_subspace)))
+        directBias[word] = cosine_similarity(vector, np.squeeze(bias_subspace))
+    return directBias
+
+#using the compute_direct_bias function, define a function to compute the average bias of the words in the neutral_words list
+
+
+def compute_average_bias(dict_vectors, words_list, bias_subspace):
+    directBias = compute_direct_bias(dict_vectors, words_list, bias_subspace)
+    #get the norm of the bias for each word first
+    for word in directBias.keys():
+        directBias[word] = np.linalg.norm(directBias[word])
+    #then compute the average
+    average_bias = np.mean(list(directBias.values()))
+    return average_bias
+
 
 
 def normalize(wv):
