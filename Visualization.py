@@ -81,9 +81,11 @@ def compute_v_measure(vecs, labels_true, k=2):
         labels_pred = clustering.labels_
         return sklearn.metrics.v_measure_score(labels_true, labels_pred)
     
+
+
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-
+#plots the t-SNE visualization of neighbor clusters to chosen words
 def tsne_plot_similar_words(title, labels, embedding_clusters, word_clusters, a, filename=None):
     plt.figure(figsize=(10, 6))
     colors = cm.rainbow(np.linspace(0, 1, len(labels)))
