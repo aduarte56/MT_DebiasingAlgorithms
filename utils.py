@@ -46,62 +46,11 @@ def extract_vectors(words, vectors, w2i):
     
     return X
 
-
-from sklearn.cluster import KMeans
-def cluster_and_evaluate(X, random_state, y_true, num=2):
-    
-    kmeans = KMeans(n_clusters=num, random_state=random_state,n_init=10).fit(X)
-    y_pred = kmeans.predict(X)
-    correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred) ]
-    alignment = sum(correct)/float(len(correct))
-    max_alignment = max(alignment, 1 - alignment)
-   
-    print(f'Alignment: {max_alignment}')
-    
-    return kmeans, y_pred, X, max_alignment
-
-
 #Removes the projection of vector 1 on vector 2
 def remove_vector_projection(vector1, vector2):
     projection= (np.dot(vector1,vector2) / np.linalg.norm(vector2))*vector2
     difference = vector1 - projection
     return difference
-
-# Function to compute the gender bias of a word. 
-# Outputs a dictionary with words as keys and gender bias as values
-def compute_gender_simple_bias(dict_vectors, he_embedding, she_embedding):
-    gender_bias = {}
-    for word in dict_vectors.keys():
-        vector = dict_vectors[word]
-        gender_bias[word] = cosine_similarity(vector, she_embedding) - cosine_similarity(vector, he_embedding)
-    return gender_bias
-
-
-def compute_direct_bias(dict_vectors, word_list, bias_subspace):
-    directBias = {}
-    word_list = set(word_list)
-    for word in dict_vectors.keys():
-        if word not in word_list:
-            continue
-        vector = dict_vectors[word]
-        #directBias[word] = np.linalg.norm(
-            #cosine_similarity(vector, np.squeeze(bias_subspace)))
-        directBias[word] = cosine_similarity(vector, np.squeeze(bias_subspace))
-    return directBias
-
-#using the compute_direct_bias function, define a function to compute the average bias of the words in the neutral_words list
-
-
-def compute_average_bias(dict_vectors, words_list, bias_subspace):
-    directBias = compute_direct_bias(dict_vectors, words_list, bias_subspace)
-    #get the norm of the bias for each word first
-    for word in directBias.keys():
-        directBias[word] = np.linalg.norm(directBias[word])
-    #then compute the average
-    average_bias = np.mean(list(directBias.values()))
-    return average_bias
-
-
 
 def normalize(wv):
     # normalize vectors
@@ -114,7 +63,6 @@ def prepare_def_sets_subspace(list_def_sets):
   return def_sets
 
 def get_words_from_pairs(definitional_pairs):
-
   # Turning the pairs into words to add afterwards to the vocabulary 
   definitional_pairs=[]
   for pair in definitional_pairs: 
@@ -141,25 +89,6 @@ def getting_biased_words(gender_bias_original, definitional_pairs, size, word2id
   for idx, w in enumerate(c_vocab):
     c_w2i[w] = idx
   return c_w2i, c_vocab, female_words, male_words, y_true
-
-def get_bias_score_df_from_list(bias_scores_original, debiased_scores, word_list, vocab_cleaned, debiased_vocab_limited): 
-    word_set = set(vocab_cleaned)
-    word_set_debiased = set(debiased_vocab_limited)
-    scores = {}
-    for word in word_list: 
-        if word in word_set: 
-            scores[word] = {"original_score": bias_scores_original[word]}
-        if word in word_set_debiased: 
-            scores[word] = scores.get(word, {})
-            scores[word]["debiased_score"] = debiased_scores[word]
-  
-    full_scores_df = pd.DataFrame.from_dict(scores, orient='index').reset_index()
-
-    full_scores_df_long = pd.melt(full_scores_df, id_vars=["index"], value_vars=["original_score", "debiased_score"])
-    full_scores_df_long["value"].astype("float")
-
-    return full_scores_df_long
-
 
 from sklearn.decomposition import PCA
 def perform_PCA_pairs(pairs, word_vectors, word2index, num_components=2):

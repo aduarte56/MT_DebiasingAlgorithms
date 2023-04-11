@@ -81,3 +81,22 @@ def compute_v_measure(vecs, labels_true, k=2):
         labels_pred = clustering.labels_
         return sklearn.metrics.v_measure_score(labels_true, labels_pred)
     
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+
+def tsne_plot_similar_words(title, labels, embedding_clusters, word_clusters, a, filename=None):
+    plt.figure(figsize=(10, 6))
+    colors = cm.rainbow(np.linspace(0, 1, len(labels)))
+    for label, embeddings, words, color in zip(labels, embedding_clusters, word_clusters, colors):
+        x = embeddings[:, 0]
+        y = embeddings[:, 1]
+        plt.scatter(x, y, c=color, alpha=a, label=label)
+        for i, word in enumerate(words):
+            plt.annotate(word, alpha=0.5, xy=(x[i], y[i]), xytext=(5, 2),
+                         textcoords='offset points', ha='right', va='bottom', size=6)
+    plt.legend(loc=4)
+    plt.title(title)
+    plt.grid(True)
+    if filename:
+       plt.savefig(filename, format='png', dpi=150, bbox_inches='tight')
+    plt.show()

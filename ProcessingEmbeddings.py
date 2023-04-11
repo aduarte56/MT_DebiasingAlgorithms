@@ -107,3 +107,15 @@ class Embeddings(object):
             f.write(w + " " + vec_as_str + "\n")
 
 
+#Function that loads the vectors into a KeyedVectors object from the Gensim Package (for debiased embeddings)
+def load_word_vectors(fname):
+    model = KeyedVectors.load_word2vec_format(fname, binary=False)
+    vecs = model.vectors
+    words = list(model.index_to_key)
+    return model, vecs, words
+
+#Function that creates a KeyedVectors object from the vectors and the vocabulary
+def create_KeyedVectors(vectors, vocab, dimensions):
+    kv = KeyedVectors(dimensions)
+    kv.add_vectors(vocab, vectors)
+    return kv
