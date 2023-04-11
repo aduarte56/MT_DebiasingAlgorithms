@@ -1,7 +1,7 @@
 Data/
 ClassEmbeddings+debiasActions.ipynb
 DoubleHardDebias.py
-__pycache__/
+**__pycache__/
 *.pyc
 Figures/
 
