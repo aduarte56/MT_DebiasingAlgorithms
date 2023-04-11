@@ -113,3 +113,35 @@ def get_embeddings_neighbors(keys,original_model, model_cleaned, topn):
     db_embedding_clusters=np.array(db_embedding_clusters)
 
     return embedding_clusters, db_embedding_clusters, word_clusters
+
+
+#############################
+# MAC SCORES
+#############################
+
+from scipy import spatial
+import numpy as np
+
+#Function adapted from by Manzini et al. (2018)
+def s_function_for_t_word(dict_vectors, target_word, attributes):
+    attribute_vectors = np.array([dict_vectors[attribute]
+	                               for attribute in attributes])
+    target_vector = dict_vectors[target_word]
+    cosine_distances = spatial.distance.cdist([target_vector], attribute_vectors, metric='cosine').flatten()
+    return cosine_distances.mean()
+
+
+def multiclass_evaluation_MAC(dict_vectors, targets_list, attributes):
+	targets_eval = []
+	for targetSet in targets_list:
+		for target in targetSet:
+			for attributeSet in attributes:
+				targets_eval.append(s_function_for_t_word(
+				    dict_vectors, target, attributeSet))
+	m_score = np.mean(targets_eval)
+	return m_score, targets_eval
+
+#############################
+# BIAS BY NEIGHBORHOOD
+#############################
+
