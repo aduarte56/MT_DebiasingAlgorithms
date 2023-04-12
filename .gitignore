@@ -4,4 +4,5 @@ DoubleHardDebias.py
 **__pycache__/
 *.pyc
 Figures/
+Dump.ipynb
 

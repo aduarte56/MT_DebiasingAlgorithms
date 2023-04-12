@@ -1,15 +1,20 @@
 """
 @author: angeladuartepardo
 
-This script contains the functions to perform the Hard-Debias algorithm following the paper:
-TODO: add paper
-THe main functions are also 
-The script requieres  "re"
+This script contains the functions to perform the Hard-Debias algorithm following the approach of Bolukbasi et al. (2016),
+Manzini et al. (2019), Cheng et al. (2019). Their work was addapted to the problem. Several boolean parameters are included 
+to validate what happens to the embeddings while debiasing. 
+The main functions call on the utils.py script to perform the PCA and remove the projection of a vector on a subspace.
 
 This file can also be imported as a module and contains the following
 functions:
-   
-  
+    * find_bias_direction - finds the bias direction
+    * identify_bias_subspace - identifies the bias subspace
+    * neutralize_words - neutralizes words
+    * equalize_words - equalizes words
+    * hard_debias - performs the hard debias algorithm
+    * hard_debias_intersectional - performs the intersectional hard debias algorithm
+    * get_debiased_embeddings - returns the debiased embeddings dictionary word as key, vector as value. 
 """
 
 
@@ -17,14 +22,6 @@ import numpy as np
 import utils
 from sklearn.decomposition import PCA
 
-def find_bias_direction(word_vectors, word2index_partial, definitional_pairs): 
-#gender_vecs = [word_vectors[p[0]] - word_vectors[p[1]] for p in gendered_pairs]
-#pca = PCA()
-#pca.fit(gender_vecs)
-#gender_direction = pca.components_[0]
-    bias_direction =utils.PCA_pairs(definitional_pairs,word_vectors, word2index_partial).components_[0]
-    bias_dir_unitary=bias_direction/np.linalg.norm(bias_direction)
-    return  bias_direction
 
 def identify_bias_subspace(vector_dict, def_sets, subspace_dim, centralizing=True):
     """
@@ -95,7 +92,8 @@ def neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction):
 
 def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_direction):
     """
-    This function equalizing words by 
+    This function equalizes with respect to the neutrality axis, this means that they are centered 
+    with respect to the origin so that they are equidistant from the neutrality axis. 
     ----------
     Parameters: 
     vocab_partial - limited vocabulary
@@ -122,7 +120,8 @@ def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_di
         debiased_vectors[w2i_partial[b], :] = -z * bias_direction + mean_orth
     return debiased_vectors
 
-def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_list, def_sets, subspace_dim, normalize=None, centralizing=True):
+def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
+                 equalizing_list, def_sets, subspace_dim, normalize_dir=False, normalize=None, centralizing=True):
     """
     Hard debiasing algorithm following Bolukbasi's Hard-Debias algorithm. Calls other functions 
     to identify the bias subspace, neutralize words and equalize words.
@@ -137,12 +136,16 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial, equalizing_
     vectors=wv.copy()
     #Gender direction
     bias_direction=identify_bias_subspace(vector_dict_partial, def_sets, subspace_dim, centralizing=centralizing)
+   
 
     #Following Manzini
     if bias_direction.ndim == 2:
         bias_direction = np.squeeze(bias_direction)
     elif bias_direction.ndim != 2:
         raise ValueError("bias subspace should be either a matrix or vector")
+    
+    if normalize_dir:
+      bias_direction=utils.normalize(bias_direction)
     
     if str(normalize).lower()=="before":
       vectors= utils.normalize(vectors) #Following Andrew Ng's approach

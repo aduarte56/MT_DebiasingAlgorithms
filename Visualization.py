@@ -9,15 +9,26 @@ import utils as utils
 import numpy as np
 
 
-RANDOM_STATE = 0
-TSNE_RANDOM_STATE=5
+RANDOM_STATE = 42
+TSNE_RANDOM_STATE=42
 
 def plot_bias_bar(df_long): 
   #takes a DF with 3 columns: index, value, variable that corresponf to occupations, gender bias score, and embedding
   fig=px.bar(df_long, x="value",y="index", color="variable", orientation="h", barmode="group",
            labels=dict(index="Wino Gender Occupations", value="Gender Bias", variable="Embeddings"),
            height=1000, width=800) 
-  fig.update_xaxes(range=[-0.3,0.3])
+  fig.update_xaxes(range=[-0.5,0.5])
+  #fig.write_image("dataDoubleHard/barplot.png")
+  return fig.show()
+
+
+def plot_bias_bar_direct_bias(df_long):
+  #takes a DF with 3 columns: index, value, variable that corresponf to occupations, gender bias score, and embedding
+  fig = px.bar(df_long, x="value", y="index", color="variable", orientation="h", barmode="group",
+               labels=dict(index="Wino Gender Occupations",
+                           value="Gender Bias", variable="Embeddings"),
+               height=1000, width=800)
+  fig.update_xaxes(range=[0, 1])
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
 
@@ -61,7 +72,7 @@ def tsne(vecs, labels, title="", ind2label = None, words = None, metric = "l2"):
      plt.legend(loc = "upper right")
 
   plt.title(title)
-  plt.savefig("embeddings.{}.png".format(title), dpi=600)
+  #plt.savefig("embeddings.{}.png".format(title), dpi=600)
   plt.show()
   return vecs_2d
 
@@ -92,7 +103,7 @@ def tsne_plot_similar_words(title, labels, embedding_clusters, word_clusters, a,
     for label, embeddings, words, color in zip(labels, embedding_clusters, word_clusters, colors):
         x = embeddings[:, 0]
         y = embeddings[:, 1]
-        plt.scatter(x, y, c=color, alpha=a, label=label)
+        plt.scatter(x, y, c=color.reshape(1, -1), alpha=a, label=label)
         for i, word in enumerate(words):
             plt.annotate(word, alpha=0.5, xy=(x[i], y[i]), xytext=(5, 2),
                          textcoords='offset points', ha='right', va='bottom', size=6)

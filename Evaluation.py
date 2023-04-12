@@ -4,22 +4,12 @@ import numpy as np
 from utils import cosine_similarity
 import pandas as pd
 
-def cluster_and_evaluate(X, random_state, y_true, num=2):
-    
-    kmeans = KMeans(n_clusters=num, random_state=random_state,n_init=10).fit(X)
-    y_pred = kmeans.predict(X)
-    correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred) ]
-    alignment = sum(correct)/float(len(correct))
-    max_alignment = max(alignment, 1 - alignment)
-   
-    print(f'Alignment: {max_alignment}')
-    
-    return kmeans, y_pred, X, max_alignment
+#############################
+# PRE/POST BIAS SCORES
+#############################
 
 # Function to compute the gender bias of a word.
 # Outputs a dictionary with words as keys and gender bias as values
-
-
 def compute_gender_simple_bias(dict_vectors, he_embedding, she_embedding):
     gender_bias = {}
     for word in dict_vectors.keys():
@@ -72,6 +62,22 @@ def get_bias_score_df_from_list(bias_scores_original, debiased_scores, word_list
 
     return full_scores_df_long
 
+
+#############################
+# CLUSTERING
+#############################
+
+def cluster_and_evaluate(X, random_state, y_true, num=2):
+    
+    kmeans = KMeans(n_clusters=num, random_state=random_state,n_init=10).fit(X)
+    y_pred = kmeans.predict(X)
+    correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred) ]
+    alignment = sum(correct)/float(len(correct))
+    max_alignment = max(alignment, 1 - alignment)
+   
+    print(f'Alignment: {max_alignment}')
+    
+    return kmeans, y_pred, X, max_alignment
 
 #############################
 # RANDOM WORDS TEST
@@ -145,3 +151,22 @@ def multiclass_evaluation_MAC(dict_vectors, targets_list, attributes):
 # BIAS BY NEIGHBORHOOD
 #############################
 
+
+def calculate_bias_by_clustering(model_original, model_debiased, biased_words, topn):
+
+    k_neighbors = finding_neighbors_before_after(
+        biased_words, model_original, model_debiased, topn=topn)
+
+    scores_before, scores_after = [], []
+
+    for word in biased_words:
+
+        neighbors_biased_before = len(
+            [w for w in k_neighbors[word]["before"] if w in biased_words])
+        neighbors_biased_after = len(
+            [w for w in k_neighbors[word]["after"] if w in biased_words])
+
+        scores_before.append(neighbors_biased_before)
+        scores_after.append(neighbors_biased_after)
+    print("avg. number of biased neighbors before: {}; after: {}".format(
+        np.mean(scores_before), np.mean(scores_after)))
