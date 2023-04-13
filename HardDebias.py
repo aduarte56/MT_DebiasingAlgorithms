@@ -20,6 +20,7 @@ functions:
 
 import numpy as np
 import utils
+from ProcessingEmbeddings import get_debiased_dict
 from sklearn.decomposition import PCA
 
 
@@ -90,6 +91,9 @@ def neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction):
       debiased_vectors[w2i_partial[words], :] = u
     return debiased_vectors
 
+
+
+
 def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_direction):
     """
     This function equalizes with respect to the neutrality axis, this means that they are centered 
@@ -159,13 +163,8 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
 
     if str(normalize).lower()=="after":
       wv_debiased=utils.normalize(wv_debiased)#Following Bolukbasi
-      
-    return wv_debiased, vocab_partial, w2i_partial
+    
+    debiased_dict=get_debiased_dict(wv_debiased, w2i_partial)
+    return wv_debiased, vocab_partial, w2i_partial, debiased_dict
 
-# get a dictionary with the debiased vectors as values and the words as keys, using debiased_vectors, debiased_vocab, debiased_word2idx from hard-debias function.
-def get_debiased_dict(wv_debiased, w2i_partial):
-   debiased_dict = {}
-   for word, index in w2i_partial.items():
-      debiased_dict[word] = wv_debiased[index, :]
-   return debiased_dict
 

@@ -119,3 +119,12 @@ def create_KeyedVectors(vectors, vocab, dimensions):
     kv = KeyedVectors(dimensions)
     kv.add_vectors(vocab, vectors)
     return kv
+
+# get a dictionary with the debiased vectors as values and the words as keys, using debiased_vectors, debiased_vocab, debiased_word2idx from hard-debias function.
+
+
+def get_debiased_dict(wv_debiased, w2i_partial):
+   debiased_dict = {}
+   for word, index in w2i_partial.items():
+      debiased_dict[word] = wv_debiased[index, :]
+   return debiased_dict
