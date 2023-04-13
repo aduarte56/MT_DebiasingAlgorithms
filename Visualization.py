@@ -12,23 +12,24 @@ import numpy as np
 RANDOM_STATE = 42
 TSNE_RANDOM_STATE=42
 
-def plot_bias_bar(df_long): 
+def plot_bias_bar(df_long, plot_title,words_title): 
   #takes a DF with 3 columns: index, value, variable that corresponf to occupations, gender bias score, and embedding
   fig=px.bar(df_long, x="value",y="index", color="variable", orientation="h", barmode="group",
-           labels=dict(index="Wino Gender Occupations", value="Gender Bias", variable="Embeddings"),
-           height=1000, width=800) 
+           labels=dict(title=plot_title, index=words_title, value="Gender Bias", variable="Embeddings"),
+           height=500, width=400) 
   fig.update_xaxes(range=[-0.5,0.5])
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
 
 
-def plot_bias_bar_direct_bias(df_long):
+def plot_bias_bar_direct_bias(df_long, plot_title, words_title):
   #takes a DF with 3 columns: index, value, variable that corresponf to occupations, gender bias score, and embedding
   fig = px.bar(df_long, x="value", y="index", color="variable", orientation="h", barmode="group",
-               labels=dict(index="Wino Gender Occupations",
+               labels=dict(title=plot_title, index=words_title,
+                           #index="Wino Gender Occupations",
                            value="Gender Bias", variable="Embeddings"),
                height=1000, width=800)
-  fig.update_xaxes(range=[0, 1])
+  fig.update_xaxes(range=[0, 0.5])
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
 
@@ -49,8 +50,8 @@ def cluster_and_visualize(words, X1, title, y_true, num=2):
     kmeans_1 = KMeans(n_clusters=num, random_state=RANDOM_STATE).fit(X1)
     y_pred_1 = kmeans_1.predict(X1)
     correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred_1) ]
-    print('precision', max(sum(correct)/float(len(correct)), 1 - sum(correct)/float(len(correct))))
-    
+    #print('precision', max(sum(correct)/float(len(correct)), 1 - sum(correct)/float(len(correct))))
+    print('precision', sum(correct)/float(len(correct)))
     fig, axs = plt.subplots(1, 1, figsize=(6, 3))
     ax1 = visualize(X1, y_true, y_pred_1, axs, title)
 

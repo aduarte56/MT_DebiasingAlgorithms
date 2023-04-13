@@ -141,15 +141,15 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
     #Gender direction
     bias_direction=identify_bias_subspace(vector_dict_partial, def_sets, subspace_dim, centralizing=centralizing)
    
-
+    if normalize_dir:
+      bias_direction=utils.normalize(bias_direction)
     #Following Manzini
     if bias_direction.ndim == 2:
         bias_direction = np.squeeze(bias_direction)
     elif bias_direction.ndim != 2:
         raise ValueError("bias subspace should be either a matrix or vector")
     
-    if normalize_dir:
-      bias_direction=utils.normalize(bias_direction)
+   
     
     if str(normalize).lower()=="before":
       vectors= utils.normalize(vectors) #Following Andrew Ng's approach
