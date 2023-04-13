@@ -19,8 +19,8 @@ functions:
 
 
 import numpy as np
-import utils
-from ProcessingEmbeddings import get_debiased_dict
+import Scripts.utils as utils
+from Scripts.ProcessingEmbeddings import get_debiased_dict
 from sklearn.decomposition import PCA
 
 

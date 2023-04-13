@@ -1,7 +1,7 @@
 from collections import defaultdict
 from sklearn.cluster import KMeans
 import numpy as np
-from utils import cosine_similarity
+from Scripts.utils import cosine_similarity
 import pandas as pd
 
 #############################

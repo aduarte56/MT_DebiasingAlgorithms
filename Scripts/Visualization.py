@@ -5,7 +5,7 @@ import operator
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from cycler import cycler
-import utils as utils
+import Scripts.utils as utils
 import numpy as np
 
 
@@ -16,7 +16,7 @@ def plot_bias_bar(df_long, plot_title,words_title):
   #takes a DF with 3 columns: index, value, variable that corresponf to occupations, gender bias score, and embedding
   fig=px.bar(df_long, x="value",y="index", color="variable", orientation="h", barmode="group",
            labels=dict(title=plot_title, index=words_title, value="Gender Bias", variable="Embeddings"),
-           height=500, width=400) 
+           height=1000, width=800) 
   fig.update_xaxes(range=[-0.5,0.5])
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
@@ -29,7 +29,7 @@ def plot_bias_bar_direct_bias(df_long, plot_title, words_title):
                            #index="Wino Gender Occupations",
                            value="Gender Bias", variable="Embeddings"),
                height=1000, width=800)
-  fig.update_xaxes(range=[0, 0.5])
+  fig.update_xaxes(range=[0, 0.5], dtick=0.05)
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
 
