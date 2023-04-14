@@ -1,6 +1,7 @@
 import plotly.express as px
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
+import sklearn
 import operator
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -79,7 +80,7 @@ def tsne(vecs, labels, title="", ind2label = None, words = None, metric = "l2"):
 
 def perform_purity_test(vecs, k, labels_true):
         np.random.seed(0)
-        clustering = sklearn.cluster.KMeans(n_clusters = k)
+        clustering = KMeans(n_clusters = k)
         clustering.fit(vecs)
         labels_pred = clustering.labels_
         score = sklearn.metrics.homogeneity_score(labels_true, labels_pred)
@@ -88,7 +89,7 @@ def perform_purity_test(vecs, k, labels_true):
 def compute_v_measure(vecs, labels_true, k=2):
     
         np.random.seed(0)
-        clustering = sklearn.cluster.KMeans(n_clusters = k)
+        clustering = KMeans(n_clusters = k)
         clustering.fit(vecs)
         labels_pred = clustering.labels_
         return sklearn.metrics.v_measure_score(labels_true, labels_pred)

@@ -80,8 +80,8 @@ def get_projection_to_intersection_of_nullspaces(rowspace_projection_matrices: L
 
 def get_debiasing_projection(classifier_class, cls_params: Dict, num_classifiers: int, input_dim: int,
                              min_accuracy: float, X_train: np.ndarray, Y_train: np.ndarray, X_dev: np.ndarray,
-                             Y_dev: np.ndarray, Y_train_main=None,
-                             Y_dev_main=None, dropout_rate = 0) -> np.ndarray:
+                             Y_dev: np.ndarray, is_autoregressive: bool,
+                             Y_train_main = None, Y_dev_main=None, dropout_rate=0) -> np.ndarray:
 
     I = np.eye(input_dim)
 
@@ -109,6 +109,22 @@ def get_debiasing_projection(classifier_class, cls_params: Dict, num_classifiers
         
       P_rowspace_wi = get_rowspace_projection(W) # projection to W's rowspace
       rowspace_projections.append(P_rowspace_wi)
+
+      if is_autoregressive:
+
+          """
+            to ensure numerical stability, explicitly project to the intersection of the nullspaces found so far (instaed of doing X = P_iX,
+            which is problematic when w_i is not exactly orthogonal to w_i-1,...,w1, due to e.g inexact argmin calculation).
+            """
+          # use the intersection-projection formula of Ben-Israel 2013 http://benisrael.net/BEN-ISRAEL-NOV-30-13.pdf:
+          # N(w1)∩ N(w2) ∩ ... ∩ N(wn) = N(P_R(w1) + P_R(w2) + ... + P_R(wn))
+
+          P = get_projection_to_intersection_of_nullspaces(
+              rowspace_projections, input_dim)
+          # project
+
+          X_train_cp = (P.dot(X_train.T)).T
+          X_dev_cp = (P.dot(X_dev.T)).T
 
     P = get_projection_to_intersection_of_nullspaces(rowspace_projections, input_dim)
 
