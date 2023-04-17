@@ -85,7 +85,7 @@ def neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction):
     """
     #Removes the bias component of words that should be neutral
     debiased_vectors = np.zeros((len(vocab_partial), len(vectors[0, :]))).astype(float)
-    for i, words in enumerate(vocab_partial):
+    for _, words in enumerate(vocab_partial):
       u = vectors[w2i_partial[words], :]
       u = utils.remove_vector_projection(u, bias_direction)
       debiased_vectors[w2i_partial[words], :] = u
@@ -106,7 +106,7 @@ def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_di
     bias_direction - bias subspace
     equalizing_list - list of pairs of words that should be equalized
     """
-    debiased_vectors = vectors
+    debiased_vectors = vectors.copy()
     candidates = set()
     for word1, word2 in equalizing_list:
       candidates.add((word1.lower(), word2.lower()))
@@ -156,6 +156,7 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
       
 
     wv_debiased=neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction)
+
     if str(normalize).lower()=="after":
       wv_debiased=utils.normalize(wv_debiased) #Following Bolukbasi
      
