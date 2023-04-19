@@ -192,7 +192,8 @@ def get_topK_neighbors(word, dict_vect, vocab, vectors, w2i, k=10):
 def get_k_nearest_neighbors(list_words, dict_vect, vocab, vectors, w2i, k=10):
     k_neigh ={}
     for w in tqdm(list_words):
-        dict_neigh, _ = topK(w, dict_vect, vocab, vectors, w2i, k)
+        dict_neigh, _ = get_topK_neighbors(
+            w, dict_vect, vocab, vectors, w2i, k)
         k_neigh.update(dict_neigh)
     return k_neigh
 
@@ -212,12 +213,12 @@ def get_frequency_original_neighbors(list_words, list_neigh, dict_vect_debiased,
 
     scores = []
     for idx, word in tqdm(enumerate(list_words)):
-
-        _, top = topK(word, dict_vect_debiased, vocab_debiased, vectors_debiased, w2i_debiased,
+        #get the top 50 neighbors of the word
+        _, top = get_topK_neighbors(word, dict_vect_debiased, vocab_debiased, vectors_debiased, w2i_debiased,
                       k=neighbours_num)
 
         count = 0
-
+        #check if the original neighbors are in the top 50
         for t in top:
             if t in list_neigh[idx]:
                 print(t)
@@ -227,6 +228,45 @@ def get_frequency_original_neighbors(list_words, list_neigh, dict_vect_debiased,
         #print(top)
     return scores
 
+#Create a function to get the average distance of the neighbors of a word in the debiased embeddings to their possition in the original embeddings
+def getting_neighbor_av_distance_debiased(neighbors, dict_vectors, debiased_dict):
+    distances = []
+    for n in neighbors:
+        distances.append(cosine_similarity(debiased_dict[n], dict_vectors[n]))
+    return np.mean(distances)
+
+
+#Create a function to get the average distance of the neighbors of a word from the word itself
+def gettng_neighbor_av_distance(word, neighbors, vectors, word2idx):
+    distances = []
+    for n in neighbors:
+        distances.append(np.linalg.norm(
+            vectors[word2idx[word]] - vectors[word2idx[n]]))
+    return np.mean(distances)
+
+
+
+#getting average cosine distance to neighbors before and after debiasing
+def get_distance_to_neighbors(random_words, list_neigh, dict_vectors, debiased_dict):
+    distances_original = {}
+    distances_debiased = {}
+    #loop through the random words
+    for i, word in enumerate(random_words):
+        dist1 = []
+        dist2 = []
+        #loop through the neighbors of the word
+        for neigh in list_neigh[i]:
+            #add the word and its cosine distance in the original embeddings to the list
+            dist1.append(
+                [neigh, 1-cosine_similarity(dict_vectors[word], dict_vectors[neigh])])
+            #add the word and its cosine distance in the debiased embeddings to the list
+            dist2.append(
+                [neigh, 1-cosine_similarity(debiased_dict[word], debiased_dict[neigh])])
+        #add the list of distances to the dictionary
+        distances_original[word] = dist1
+        distances_debiased[word] = dist2
+
+    return distances_original, distances_debiased
 
 #############################
 # MAC SCORES
