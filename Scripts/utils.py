@@ -8,7 +8,7 @@ def cosine_similarity(v, w):
     
     dot_product=np.dot(v,w)
     product_norms=np.linalg.norm(v)*np.linalg.norm(w)
-    cosine_similarity = dot_product/product_norms
+    cosine_similarity = dot_product/max(product_norms, 1e-6) # 1e-6 is a small number to avoid division by zero
     
     return cosine_similarity
 
