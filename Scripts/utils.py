@@ -158,7 +158,7 @@ def getting_biased_words(gender_bias_original, definitional_pairs, size, word2id
 
   y_true = [0]*size + [1]*size
   gendered_words = get_words_from_pairs(definitional_pairs)
-  c_vocab = list(set(male_words + female_words +
+  c_vocab = list(set(female_words + male_words +
                  [word for word in gendered_words if word in word2idx]))
   c_w2i = dict()
   for idx, w in enumerate(c_vocab):

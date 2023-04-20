@@ -31,6 +31,7 @@ class Embeddings(object):
             self.model=self.load_vectors(file)
             self.vectors, self.words, self.word2idx=self.get_words_vectors(self.model)
       else:
+            self.file = file
             print("Loading", self.file, "embeddings")
             self.model = KeyedVectors.load_word2vec_format(file, binary=False)
             self.vectors, self.words, self.word2idx=self.get_words_vectors(self.model)
@@ -78,9 +79,6 @@ class Embeddings(object):
     X = [self.vectors[w2i[x],:] for x in words]
     
     return X
-
-  def normalize_embeddings(self):
-    self.vectors /= np.linalg.norm(self.vectors)
 
   def has_punct(self, word):
     if any([punct in string.punctuation for punct in word]):

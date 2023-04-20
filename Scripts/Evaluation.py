@@ -47,6 +47,18 @@ def get_term_analogies(dict_vect, worda, wordb, wordx, include_triplet=False):
 # PRE/POST BIAS SCORES
 #############################
 
+#compute the bias direction of a word through cosine similarity to the bias direction
+def compute_similarity_to_bias_direction(dict_vec_cleaned, bias_direction):
+    bias_direction = bias_direction / np.linalg.norm(bias_direction)
+    similarity = {}
+    for word in dict_vec_cleaned.keys():
+        dict_vec_cleaned[word] = dict_vec_cleaned[word] / \
+            np.linalg.norm(dict_vec_cleaned[word])
+        similarity[word] = cosine_similarity(bias_direction, dict_vec_cleaned[word])
+    return similarity
+
+
+
 # Function to compute the gender bias of a word.
 # Outputs a dictionary with words as keys and gender bias as values
 def compute_gender_simple_bias(dict_vectors, he_embedding, she_embedding):
