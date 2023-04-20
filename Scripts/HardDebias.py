@@ -138,19 +138,24 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
     bias_direction - bias subspace
     """    
     vectors=wv.copy()
-    #Gender direction
+    #############################
+    #1.  getting the bias direction by identifying the direction where the most 'biased' variation happens according to some definitional sets
+    #############################
     bias_direction=identify_bias_subspace(vector_dict_partial, def_sets, subspace_dim, centralizing=centralizing)
-   
+
     if normalize_dir:
       bias_direction=utils.normalize(bias_direction)
+
+
     #Following Manzini
     if bias_direction.ndim == 2:
         bias_direction = np.squeeze(bias_direction)
     elif bias_direction.ndim != 2:
         raise ValueError("bias subspace should be either a matrix or vector")
     
-   
-    
+    #############################
+    #2. Neutralizing the words which should be neutral
+    #############################
     if str(normalize).lower()=="before":
       vectors= utils.normalize(vectors) #Following Andrew Ng's approach
       
@@ -160,6 +165,10 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
     if str(normalize).lower()=="after":
       wv_debiased=utils.normalize(wv_debiased) #Following Bolukbasi
      
+    #############################
+    #3. Equalizing the biased pairs. 
+    #############################
+
     wv_debiased=equalize_words(wv_debiased, vocab_partial, w2i_partial, equalizing_list, bias_direction)
 
     if str(normalize).lower()=="after":

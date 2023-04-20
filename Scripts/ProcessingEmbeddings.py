@@ -11,22 +11,46 @@ from gensim.scripts.glove2word2vec import glove2word2vec
 from gensim.models.keyedvectors import KeyedVectors
 #import torch
 
+#Class to load and clean the embeddings
 class Embeddings(object):
+  
   def __init__(self, file, gensim=True):
+      """"
+      Constructor of the class
+      ----
+        :param file: path to the file with the embeddings
+        :param gensim: True if the embeddings are to be downloaded directly from gensim, False if they are to be read from the local file into a gensim object
+      """
+      
       if file is None:
             print("Invalid file")
-      else:
+      
+      if gensim:
             self.file = file
             print("Loading", self.file, "embeddings")
             self.model=self.load_vectors(file)
             self.vectors, self.words, self.word2idx=self.get_words_vectors(self.model)
-      
+      else:
+            print("Loading", self.file, "embeddings")
+            self.model = KeyedVectors.load_word2vec_format(file, binary=False)
+            self.vectors, self.words, self.word2idx=self.get_words_vectors(self.model)
+   
 
   def load_vectors(self, file):
+      """"
+        Loads the embeddings from the file directly from gensim
+        ----
+        :param file: path to the file with the embeddings
+      """
       model = gensim.downloader.load(file) #getting the desired model. 
       return model
 
   def get_words_vectors(self, model):
+      """"
+        Gets the words and vectors from the model
+        ----
+        :param file: model object from which the words and vectors are to be extracted
+      """
       vectors = model.vectors #list of arrays or vectos
       words = model.index_to_key #list of words
       word2idx = {word: idx for idx, word in enumerate(words)} #dictionary: word, index
@@ -35,6 +59,7 @@ class Embeddings(object):
       return vectors, words, word2idx
 
   def get_word_vector_dict(self):
+      
       #creating a dictionary to access the embeddings with word as key and vectors as values
       dict_vectors = dict({})
       for idx, key in enumerate(self.model.key_to_index):
