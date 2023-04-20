@@ -49,6 +49,12 @@ def get_term_analogies(dict_vect, worda, wordb, wordx, include_triplet=False):
 
 #compute the bias direction of a word through cosine similarity to the bias direction
 def compute_similarity_to_bias_direction(dict_vec_cleaned, bias_direction):
+    """"
+    Compute the similarity of each word in the dictionary to the bias direction
+    :param dict_vec_cleaned: dictionary of word vectors
+    :param bias_direction: bias direction
+    :return: dictionary of words and their similarity to the bias direction
+    """
     bias_direction = bias_direction / np.linalg.norm(bias_direction)
     similarity = {}
     for word in dict_vec_cleaned.keys():
@@ -62,6 +68,13 @@ def compute_similarity_to_bias_direction(dict_vec_cleaned, bias_direction):
 # Function to compute the gender bias of a word.
 # Outputs a dictionary with words as keys and gender bias as values
 def compute_gender_simple_bias(dict_vectors, he_embedding, she_embedding):
+    """"
+    Funtion to compute gender bias as the difference between the cosine similarity of a word to the he embedding and the cosine similarity of the word to the she embedding
+    :param dict_vectors: dictionary of word vectors
+    :param he_embedding: embedding of the word "he"
+    :param she_embedding: embedding of the word "she"
+    :return: dictionary of words and their bias
+    """
     gender_bias = {}
     for word in dict_vectors.keys():
         vector = dict_vectors[word]
@@ -71,6 +84,13 @@ def compute_gender_simple_bias(dict_vectors, he_embedding, she_embedding):
 
 
 def compute_direct_bias(dict_vectors, word_list, bias_subspace):
+    """"
+    Funtion to compute the direct bias of a word as the cosine similarity of the word to the bias subspace
+    :param dict_vectors: dictionary of word vectors
+    :param word_list: list of words to compute the bias for
+    :param bias_subspace: bias subspace
+    :return: dictionary of words and their bias
+    """
     directBias = {}
     word_list = set(word_list)
     for word in dict_vectors.keys():
@@ -84,6 +104,13 @@ def compute_direct_bias(dict_vectors, word_list, bias_subspace):
 
 #function to compute the average bias of the words in the neutral_words list
 def compute_average_bias(dict_vectors, words_list, bias_subspace):
+    """"
+    Funtion to compute the average bias of a list of words
+    :param dict_vectors: dictionary of word vectors
+    :param words_list: list of words to compute the bias for
+    :param bias_subspace: bias subspace
+    :return: average bias
+    """
     directBias = compute_direct_bias(dict_vectors, words_list, bias_subspace)
     #get the norm of the bias for each word first
     for word in directBias.keys():
@@ -94,6 +121,15 @@ def compute_average_bias(dict_vectors, words_list, bias_subspace):
 
 
 def get_bias_score_df_from_list(bias_scores_original, debiased_scores, word_list, vocab_cleaned, debiased_vocab_limited):
+    """"
+    Function to get a dataframe with the bias scores of a list of words
+    :param bias_scores_original: dictionary of bias scores before debiasing
+    :param debiased_scores: dictionary of bias scores after debiasing
+    :param word_list: list of words to compute the bias for
+    :param vocab_cleaned: list of words in the vocabulary
+    :param debiased_vocab_limited: list of words in the debiased vocabulary
+    :return: dataframe with the bias scores of a list of words
+    """
     word_set = set(vocab_cleaned)
     word_set_debiased = set(debiased_vocab_limited)
     scores = {}
@@ -119,7 +155,14 @@ def get_bias_score_df_from_list(bias_scores_original, debiased_scores, word_list
 #############################
 
 def cluster_and_evaluate(X, random_state, y_true, num=2):
-    
+    """"
+    function to calculate the alignment of the clusters with the true labels
+    :param X: data to cluster
+    :param random_state: random state
+    :param y_true: true labels
+    :param num: number of clusters
+    :return: kmeans model, predicted labels, data, alignment
+    """
     kmeans = KMeans(n_clusters=num, random_state=random_state,n_init=10).fit(X)
     y_pred = kmeans.predict(X)
     correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred) ]
@@ -137,6 +180,14 @@ from collections import defaultdict
 
 #the function uses gensim .most_similar() method to find the top-N most similar words to a given word
 def finding_neighbors_before_after(word_list, original_model, debiased_model, topn=3):
+    """"
+    Function to find the top-N most similar words to a given word before and after debiasing
+    :param word_list: list of words to compute the bias for
+    :param original_model: original model
+    :param debiased_model: debiased model
+    :param topn: number of neighbors to find
+    :return: dictionary of words and their neighbors before and after debiasing
+    """
     neighbors_per_word = defaultdict(dict)
     for word in word_list:
         words_before, _ = zip(*original_model.most_similar(word, topn=topn))
@@ -150,6 +201,14 @@ def finding_neighbors_before_after(word_list, original_model, debiased_model, to
 
 #Get the embeddings of the neighbors from the words in the word_list
 def get_embeddings_neighbors(keys,original_model, model_cleaned, topn):
+    """"
+    Function to get the embeddings of the neighbors from the words in the word_list
+    :param keys: list of words to compute the bias for
+    :param original_model: original model
+    :param model_cleaned: debiased model
+    :param topn: number of neighbors to find
+    :return: embedding clusters, debiased embedding clusters, word clusters
+    """
     embedding_clusters = []
     db_embedding_clusters = []
     word_clusters = []
@@ -173,9 +232,17 @@ def get_embeddings_neighbors(keys,original_model, model_cleaned, topn):
 
 
 #Function to find the top-k most similar words to a given word using the cosine similarity
-
-
 def get_topK_neighbors(word, dict_vect, vocab, vectors, w2i, k=10):
+    """"
+    Function to find the top-k most similar words to a given word using the cosine similarity
+    :param word: word to compute the bias for
+    :param dict_vect: dictionary of words and their embeddings
+    :param vocab: list of words in the vocabulary
+    :param vectors: list of embeddings
+    :param w2i: dictionary of words and their indices
+    :param k: number of neighbors to find
+    :return: dictionary of words and their neighbors before and after debiasing
+    """
     k_neigh = {}
     list_neigh = []
     # extract the word vector for word w
@@ -202,6 +269,16 @@ def get_topK_neighbors(word, dict_vect, vocab, vectors, w2i, k=10):
 
 #get a dictionary with all the k-nearest neighbors for each word in the list
 def get_k_nearest_neighbors(list_words, dict_vect, vocab, vectors, w2i, k=10):
+    """"
+    Function to find the top-k most similar words to a list of words using the cosine similarity
+    :param list_words: list of words to compute the bias for
+    :param dict_vect: dictionary of words and their embeddings
+    :param vocab: list of words in the vocabulary
+    :param vectors: list of embeddings
+    :param w2i: dictionary of words and their indices
+    :param k: number of neighbors to find
+    :return: dictionary of words and their neighbors before and after debiasing
+    """
     k_neigh ={}
     for w in tqdm(list_words):
         dict_neigh, _ = get_topK_neighbors(
@@ -213,6 +290,11 @@ def get_k_nearest_neighbors(list_words, dict_vect, vocab, vectors, w2i, k=10):
 
 
 def get_list_neighbors(k_neigh):
+    """"
+    Function to get a list of the neighbors for each word of the dictionary k_neigh
+    :param k_neigh: dictionary of words and their neighbors
+    :return: list of the neighbors for each word of the dictionary k_neigh
+    """
     list_neigh = []
     for w in k_neigh.keys():
         list_neigh.append([i[0] for i in k_neigh[w]])
@@ -222,7 +304,17 @@ def get_list_neighbors(k_neigh):
 
 
 def get_frequency_original_neighbors(list_words, list_neigh, dict_vect_debiased, vocab_debiased, vectors_debiased, w2i_debiased, neighbours_num=50):
-
+    """"
+    Function to get the frequency of the original neighbors among the 50 nearest neighbors of selected words
+    :param list_words: list of words to compute the bias for
+    :param list_neigh: list of the neighbors for each word of the dictionary k_neigh
+    :param dict_vect_debiased: dictionary of words and their embeddings
+    :param vocab_debiased: list of words in the vocabulary
+    :param vectors_debiased: list of embeddings
+    :param w2i_debiased: dictionary of words and their indices
+    :param neighbours_num: number of neighbors to find
+    :return: list of the frequency of the original neighbors among the 50 nearest neighbors of selected words
+    """
     scores = []
     for idx, word in tqdm(enumerate(list_words)):
         #get the top 50 neighbors of the word
@@ -242,6 +334,13 @@ def get_frequency_original_neighbors(list_words, list_neigh, dict_vect_debiased,
 
 #Create a function to get the average distance of the neighbors of a word in the debiased embeddings to their possition in the original embeddings
 def getting_neighbor_av_distance_debiased(neighbors, dict_vectors, debiased_dict):
+    """"
+    Function to get the average distance of the neighbors of a word in the debiased embeddings to their possition in the original embeddings
+    :param neighbors: list of the neighbors for each word of the dictionary k_neigh
+    :param dict_vectors: dictionary of words and their embeddings
+    :param debiased_dict: dictionary of words and their debiased embeddings
+    :return: average distance of the neighbors of a word in the debiased embeddings to their possition in the original embeddings
+    """
     distances = []
     for n in neighbors:
         distances.append(cosine_similarity(debiased_dict[n], dict_vectors[n]))
@@ -250,6 +349,14 @@ def getting_neighbor_av_distance_debiased(neighbors, dict_vectors, debiased_dict
 
 #Create a function to get the average distance of the neighbors of a word from the word itself
 def gettng_neighbor_av_distance(word, neighbors, vectors, word2idx):
+    """"
+    Function to get the average distance of the neighbors of a word from the word itself
+    :param word: word to compute the bias for
+    :param neighbors: list of the neighbors for each word of the dictionary k_neigh
+    :param vectors: list of embeddings
+    :param word2idx: dictionary of words and their indices
+    :return: average distance of the neighbors of a word from the word itself
+    """
     distances = []
     for n in neighbors:
         distances.append(np.linalg.norm(
@@ -260,6 +367,14 @@ def gettng_neighbor_av_distance(word, neighbors, vectors, word2idx):
 
 #getting average cosine distance to neighbors before and after debiasing
 def get_distance_to_neighbors(random_words, list_neigh, dict_vectors, debiased_dict):
+    """"
+    Function to get the average cosine distance to neighbors before and after debiasing
+    :param random_words: list of words to compute the bias for
+    :param list_neigh: list of the neighbors for each word of the dictionary k_neigh
+    :param dict_vectors: dictionary of words and their embeddings
+    :param debiased_dict: dictionary of words and their debiased embeddings
+    :return: average cosine distance to neighbors before and after debiasing
+    """
     distances_original = {}
     distances_debiased = {}
     #loop through the random words
@@ -289,6 +404,13 @@ import numpy as np
 
 #Function adapted from by Manzini et al. (2018)
 def s_function_for_t_word(dict_vectors, target_word, attributes):
+    """"
+    Function to compute the mean cosine distances between the target word and the attributes
+    :param dict_vectors: dictionary of words and their embeddings
+    :param target_word: word to compute the bias for
+    :param attributes: list of attributes
+    :return: mean cosine distances between the target word and the attributes
+    """
     attribute_vectors = np.array([dict_vectors[attribute]
 	                               for attribute in attributes])
     target_vector = dict_vectors[target_word]
@@ -297,14 +419,21 @@ def s_function_for_t_word(dict_vectors, target_word, attributes):
 
 
 def multiclass_evaluation_MAC(dict_vectors, targets_list, attributes):
-	targets_eval = []
-	for targetSet in targets_list:
-		for target in targetSet:
-			for attributeSet in attributes:
-				targets_eval.append(s_function_for_t_word(
-				    dict_vectors, target, attributeSet))
-	m_score = np.mean(targets_eval)
-	return m_score, targets_eval
+    """"
+    Function to compute the MAC score
+    :param dict_vectors: dictionary of words and their embeddings
+    :param targets_list: list of target words
+    :param attributes: list of attributes
+    :return: MAC score and evaluation score
+    """
+    
+    targets_eval = []
+    for targetSet in targets_list:
+        for target in targetSet:
+            for attributeSet in attributes:
+                targets_eval.append(s_function_for_t_word(dict_vectors, target, attributeSet))
+    m_score = np.mean(targets_eval)
+    return m_score, targets_eval
 
 #############################
 # BIAS BY NEIGHBORHOOD
@@ -312,7 +441,13 @@ def multiclass_evaluation_MAC(dict_vectors, targets_list, attributes):
 
 
 def calculate_bias_by_clustering(model_original, model_debiased, biased_words, topn):
-
+    """"
+    Function to compute the bias by neighborhood
+    :param model_original: original embeddings
+    :param model_debiased: debiased embeddings
+    :param biased_words: list of biased words
+    :param topn: number of neighbors to consider
+    """
     k_neighbors = finding_neighbors_before_after(
         biased_words, model_original, model_debiased, topn=topn)
 

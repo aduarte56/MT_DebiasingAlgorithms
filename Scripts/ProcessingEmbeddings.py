@@ -60,7 +60,12 @@ class Embeddings(object):
       return vectors, words, word2idx
 
   def get_word_vector_dict(self):
-      
+      """"
+      Gets a dictionry with the words as keys and the vectors as values
+      ----
+      :param file: model object from which the words and vectors are to be extracted
+      :return: dictionary with the words as keys and the vectors as values
+      """
       #creating a dictionary to access the embeddings with word as key and vectors as values
       dict_vectors = dict({})
       for idx, key in enumerate(self.model.key_to_index):
@@ -68,29 +73,61 @@ class Embeddings(object):
       return dict_vectors
 
   def get_vectors_from_list(self, list_words):
-      #Sale de null-it-out
-      vectors = []
-      for word in list_words:  
-          vectors.append(self.model[word])
-      return np.array(vectors)
+    """"
+    Gets the vectors of the words in the list
+    ----
+    :param list_words: list of words
+    :return: list of vectors
+    """
+    
+    #Sale de null-it-out
+    vectors = []
+    for word in list_words:  
+        vectors.append(self.model[word])
+    return np.array(vectors)
   
   def extract_vectors(self, words, w2i):
+    """"
+    Extracts the vectors of the words
+    ----
+    :param words: list of words
+    :param w2i: dictionary with the words as keys and the indices as values
+    :return: list of vectors
+    """
     
     X = [self.vectors[w2i[x],:] for x in words]
     
     return X
 
   def has_punct(self, word):
+    """"
+    Checks if the word contains punctuation
+    ----
+    :param word: word
+    :return: True if the word contains punctuation, False otherwise
+    """
     if any([punct in string.punctuation for punct in word]):
         return True
     return False
 
   def has_digit(self,word):
+    """"
+    Checks if the word contains digits
+    ----
+    :param word: word
+    :return: True if the word contains digits, False otherwise
+    """
     if any([digit in string.digits for digit in word]):
         return True
     return False
 
   def exclude_punctuation(self, words):
+    """"
+    Excludes the words that contain punctuation or digits
+    ----
+    :param words: list of words
+    :return: list of words without punctuation
+    """
     vocab_limited = []
     for word in tqdm(words[:len(words)]): 
         if word.lower() != word :
@@ -108,6 +145,15 @@ class Embeddings(object):
     return vocab_limited
 
   def limit_vocab(self, word_vector, word_index, vocab, exclude = None):
+    """"
+    Limits the vocabulary to the words that are not in the exclude list
+    ----
+    :param word_vector: word vectors
+    :param word_index: dictionary with the words as keys and the indices as values
+    :param vocab: list of words
+    :param exclude: list of words to be excluded
+    :return: limited vocabulary, limited word vectors, limited word index, limited dictionary with the words as keys and the vectors as values
+    """
     vocab_limited=self.exclude_punctuation(vocab)
     if exclude:
        vocab_limited = list(set(vocab_limited) - set(exclude))
@@ -123,6 +169,12 @@ class Embeddings(object):
     return vocab_limited, wv_limited, w2i_limited, dict_vectors_limit
 
   def save_in_word2vec_format(self, vecs: np.ndarray, words: np.ndarray, fname: str):
+    """
+    Saves the vectors in the word2vec format.
+    :param vecs: vectors
+    :param words: vocabulary
+    :param fname: path to the file where the vectors are to be saved
+    """
     with open(fname, "w", encoding = "utf-8") as f:
         f.write(str(len(vecs)) + " " + str(vecs.shape[1]) + "\n")
         for i, (v,w) in tqdm(enumerate(zip(vecs, words))):
@@ -132,6 +184,11 @@ class Embeddings(object):
 
 #Function that loads the vectors into a KeyedVectors object from the Gensim Package (for debiased embeddings)
 def load_word_vectors(fname):
+    """
+    Loads word vectors from a file.
+    :param fname: path to the file with the embeddings
+    :return: model:KeyedVectors object, vecs: vectors, words: vocabulary
+    """
     model = KeyedVectors.load_word2vec_format(fname, binary=False)
     vecs = model.vectors
     words = list(model.index_to_key)
@@ -139,14 +196,27 @@ def load_word_vectors(fname):
 
 #Function that creates a KeyedVectors object from the vectors and the vocabulary
 def create_KeyedVectors(vectors, vocab, dimensions):
+    """"
+    Creates a KeyedVectors object from the vectors and the vocabulary
+    ----
+    :param vectors: vectors
+    :param vocab: vocabulary
+    :param dimensions: dimensions of the vectors
+    :return: KeyedVectors object
+    """
     kv = KeyedVectors(dimensions)
     kv.add_vectors(vocab, vectors)
     return kv
 
 # get a dictionary with the debiased vectors as values and the words as keys, using debiased_vectors, debiased_vocab, debiased_word2idx from hard-debias function.
-
-
 def get_debiased_dict(wv_debiased, w2i_partial):
+   """"
+   Gets a dictionary with the debiased vectors as values and the words as keys
+   ----
+   :param wv_debiased: debiased vectors
+   :param w2i_partial: dictionary with the words as keys and the indices as values
+   :return: dictionary with the debiased vectors as values and the words as keys
+   """
    debiased_dict = {}
    for word, index in w2i_partial.items():
       debiased_dict[word] = wv_debiased[index, :]

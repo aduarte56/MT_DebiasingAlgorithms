@@ -36,7 +36,9 @@ class Classifier():
 class SKlearnClassifier(Classifier):
 
     def __init__(self, m):
-
+        """
+        :param m: sklearn model
+        """
         self.model = m
 
     def train_network(self, X_train: np.ndarray, Y_train: np.ndarray, X_dev: np.ndarray, Y_dev: np.ndarray) -> float:
@@ -62,6 +64,11 @@ class SKlearnClassifier(Classifier):
         return w
 
 def get_rowspace_projection(W):
+    """
+    :param W: np array of shape (input_dim, output_dim)
+    :return 
+        :return: final weights of the model, as np array
+    """
     if np.allclose(W, 0): #Returns True if two arrays are element-wise equal within a tolerance.
       w_basis = np.zeros_like(W.T) #Return an array of zeros with the same shape and type as the transpose of the given array.
     else:
@@ -71,7 +78,12 @@ def get_rowspace_projection(W):
     
 
 def get_projection_to_intersection_of_nullspaces(rowspace_projection_matrices: List[np.ndarray], input_dim: int):
-
+    """
+    :param: rowspace_projection_matrices: list of projection matrices on the rowspaces of the classifiers
+    :param: input_dim: dimension of the input space 
+    :return 
+        :return: projection matrix to the intersection of the nullspaces of the classifiers
+    """
     I = np.eye(input_dim) #Return a 2-D array with ones on the diagonal and zeros elsewhere.
     Q = np.sum(rowspace_projection_matrices, axis = 0)
     P = I -get_rowspace_projection(Q)
@@ -82,6 +94,22 @@ def get_debiasing_projection(classifier_class, cls_params: Dict, num_classifiers
                              min_accuracy: float, X_train: np.ndarray, Y_train: np.ndarray, X_dev: np.ndarray,
                              Y_dev: np.ndarray, is_autoregressive: bool,
                              Y_train_main = None, Y_dev_main=None, dropout_rate=0) -> np.ndarray:
+    """
+    :param classifier_class: class of the classifier to use
+    :param cls_params: parameters of the classifier
+    :param num_classifiers: number of classifiers to train
+    :param input_dim: dimension of the input space
+    :param min_accuracy: minimum accuracy on the dev set for a classifier to be considered
+    :param X_train: training set
+    :param Y_train: training labels
+    :param X_dev: dev set
+    :param Y_dev: dev labels
+    :param is_autoregressive: whether to use autoregressive debiasing
+    :param Y_train_main: training labels of the main task
+    :param Y_dev_main: dev labels of the main task
+    :param dropout_rate: dropout rate
+    :return: projection matrix to the intersection of the nullspaces of the classifiers
+    """
 
     I = np.eye(input_dim)
 
@@ -132,9 +160,16 @@ def get_debiasing_projection(classifier_class, cls_params: Dict, num_classifiers
 
 
 
+
       #Functions for gender debiasing
-def getting_classes_for_INLP(gender_vector, model, n = 2500):
     
+def getting_classes_for_INLP(gender_vector, model, n = 2500):
+    """"
+    :param gender_vector : gender direction vector
+    :param model : embeddings model
+    :param n : number of words to be returned
+    :return: groups of biased words: group1, group2, neut
+    """
     group1 = model.similar_by_vector(gender_vector, topn = n, restrict_vocab=None)
     group2 = model.similar_by_vector(-gender_vector, topn = n, restrict_vocab=None)
     
