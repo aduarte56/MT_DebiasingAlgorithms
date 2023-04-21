@@ -144,7 +144,7 @@ class Embeddings(object):
         vocab_limited.append(word)
     return vocab_limited
 
-  def limit_vocab(self, word_vector, word_index, vocab, exclude = None):
+  def limit_vocab(self, word_vector, word_index, vocab, exclude = None, exclude_punct = True):
     """"
     Limits the vocabulary to the words that are not in the exclude list
     ----
@@ -154,7 +154,9 @@ class Embeddings(object):
     :param exclude: list of words to be excluded
     :return: limited vocabulary, limited word vectors, limited word index, limited dictionary with the words as keys and the vectors as values
     """
-    vocab_limited=self.exclude_punctuation(vocab)
+    vocab_limited=vocab
+    if exclude_punct:
+      vocab_limited=self.exclude_punctuation(vocab)
     if exclude:
        vocab_limited = list(set(vocab_limited) - set(exclude))
 
