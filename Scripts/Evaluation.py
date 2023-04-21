@@ -363,7 +363,18 @@ def gettng_neighbor_av_distance(word, neighbors, vectors, word2idx):
             vectors[word2idx[word]] - vectors[word2idx[n]]))
     return np.mean(distances)
 
+#get dataframe of distances from distances_original and distances_debiased
 
+
+def get_df_distances(distances_original, distances_debiased):
+    df = pd.DataFrame()
+    for word in distances_original.keys():
+        for i in range(len(distances_original[word])):
+            #df=df.append({'word':word, 'neighbor':distances_original[word][i][0], 'distance_original':distances_original[word][i][1], 'distance_debiased':distances_debiased[word][i][1]}, ignore_index=True)
+            df = pd.concat([df, pd.DataFrame.from_records([{'word': word, 'neighbor': distances_original[word][i][0],
+                           'distance_original':distances_original[word][i][1], 'distance_debiased':distances_debiased[word][i][1]}])], ignore_index=True)
+
+    return df
 
 #getting average cosine distance to neighbors before and after debiasing
 def get_distance_to_neighbors(random_words, list_neigh, dict_vectors, debiased_dict):

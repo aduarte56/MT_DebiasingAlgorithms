@@ -72,11 +72,11 @@ def get_words_from_pairs(definitional_pairs):
   :return: list of words
   """
   # Turning the pairs into words to add afterwards to the vocabulary
-  definitional_pairs = []
+  definitional_list = []
   for pair in definitional_pairs:
     for word in pair:
-      definitional_pairs.append(word)
-  return definitional_pairs
+      definitional_list.append(word)
+  return definitional_list
 
 ################################################
 # OPERATIONS ON WORD VECTORS
