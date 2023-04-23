@@ -18,6 +18,7 @@ def get_term_analogies(dict_vect, worda, wordb, wordx, include_triplet=False):
     """
     #initialize the maximum-similarity
     max_similarity = -10
+    best_word = None
     #get the vocabulary
     vocab = list(dict_vect.keys())
 
@@ -28,7 +29,8 @@ def get_term_analogies(dict_vect, worda, wordb, wordx, include_triplet=False):
         if include_triplet == True:
             if word in [worda.lower(), wordb.lower(), wordx.lower()]:
                 pass
-            else:
+        else:
+            if word in [worda.lower(), wordb.lower(), wordx.lower()]:
                 continue
         #Calculate the cosine si
         similarity = cosine_similarity(
