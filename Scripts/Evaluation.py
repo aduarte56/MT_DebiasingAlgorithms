@@ -61,7 +61,7 @@ def compute_similarity_to_bias_direction(dict_vec_cleaned, bias_direction):
     similarity = {}
     for word in dict_vec_cleaned.keys():
         dict_vec_cleaned[word] = dict_vec_cleaned[word] / np.linalg.norm(dict_vec_cleaned[word])
-        similarity[word] = cosine_similarity(bias_direction, dict_vec_cleaned[word])
+        similarity[word] = cosine_similarity(bias_direction, dict_vec_cleaned[word]).astype(float)
     return similarity
 
 

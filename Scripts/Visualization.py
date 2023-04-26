@@ -10,8 +10,12 @@ import Scripts.utils as utils
 import numpy as np
 
 
-RANDOM_STATE = 42
-TSNE_RANDOM_STATE=42
+#RANDOM_STATE = 42
+#TSNE_RANDOM_STATE=42
+
+#######################################################################
+## BAR PLOTS BIAS SCORES
+########################################################################
 
 def plot_bias_bar(df_long, plot_title,words_title): 
   """"
@@ -50,9 +54,14 @@ def plot_bias_bar_direct_bias(df_long, plot_title, words_title):
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
 
-def visualize(vectors, y_true, y_pred, ax, title):
+
+#######################################################################
+## VISUALIZE WORD CLUSTERS
+########################################################################
+
+def visualize(vectors, y_true, ax, title, random_state):
     """"
-    Function to visualize the TSNE plot
+    Function to visualize the masculine and feminine clusters following Gonen et al. (2019)
     ----
     :param vectors: vectors to be plotted
     :param y_true: true labels
@@ -62,9 +71,10 @@ def visualize(vectors, y_true, y_pred, ax, title):
     :return: plot
     """
     # perform TSNE
-    vectors =utils.normalize(vectors)
-    X_embedded = TSNE(n_components=2, random_state=RANDOM_STATE).fit_transform(vectors)
-    for x,p,y in zip(X_embedded, y_pred, y_true):
+    #vectors =utils.normalize(vectors)
+    X_embedded = TSNE(
+        n_components=2, random_state=random_state).fit_transform(vectors)
+    for x,y in zip(X_embedded, y_true):
         if y:
             ax.scatter(x[0], x[1], marker = '.', c = 'c')
         else:
@@ -72,9 +82,9 @@ def visualize(vectors, y_true, y_pred, ax, title):
     ax.set_title(title)
     return ax
 
-def cluster_and_visualize(words, X1, title, y_true, num=2):
+def cluster_and_visualize(words, X, title, y_true, random_state,num=2):
     """"
-    Function to cluster and visualize the TSNE plot
+    Function to cluster the words depending on their label. Following Gonen et al. (2019)
     ----
     :param words: words to be plotted
     :param X1: vectors to be plotted
@@ -83,14 +93,16 @@ def cluster_and_visualize(words, X1, title, y_true, num=2):
     :param num: number of clusters
     :return: plot
     """
-        
-    kmeans_1 = KMeans(n_clusters=num, random_state=RANDOM_STATE).fit(X1)
-    y_pred_1 = kmeans_1.predict(X1)
-    correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred_1) ]
+    
+    kmeans= KMeans(n_clusters=num, random_state=random_state, n_init=10).fit(X)
+    y_pred = kmeans.predict(X)
+    correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred) ]
     #print('precision', max(sum(correct)/float(len(correct)), 1 - sum(correct)/float(len(correct))))
-    print('precision', sum(correct)/float(len(correct)))
-    fig, axs = plt.subplots(1, 1, figsize=(6, 3))
-    ax1 = visualize(X1, y_true, y_pred_1, axs, title)
+    precision = sum(correct)/float(len(correct))
+    print('precision', precision)
+    _, axs = plt.subplots(1, 1, figsize=(6, 3))
+    ax1 = visualize(X, y_true, axs, title, random_state)
+    return precision, ax1
 
 
 def tsne(vecs, labels, title="", ind2label = None, words = None, metric = "l2"):
