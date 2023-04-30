@@ -118,7 +118,7 @@ def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_di
         mean_c= (vectors[w2i_partial[a], :]-vectors[w2i_partial[b], :])/2
         mean_orth = utils.remove_vector_projection(mean_c, bias_direction)
         z = np.sqrt(abs(1 - np.linalg.norm(mean_orth))**2)
-        if (vectors[w2i_partial[a], :] - vectors[w2i_partial[b],:]).dot(bias_direction) < 0:
+        if (vectors[w2i_partial[a], :] - vectors[w2i_partial[b],:]).dot(bias_direction) > 0:
           z = -z
         debiased_vectors[w2i_partial[a], :] = z * bias_direction + mean_orth
         debiased_vectors[w2i_partial[b], :] = -z * bias_direction + mean_orth

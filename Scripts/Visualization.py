@@ -193,12 +193,12 @@ def tsne_plot_similar_words(title, labels, embedding_clusters, word_clusters, a,
         y = embeddings[:, 1]
         plt.scatter(x, y, c=color.reshape(1, -1), alpha=a, label=label)
         for i, word in enumerate(words):
-            plt.annotate(word, alpha=0.5, xy=(x[i], y[i]), xytext=(5, 2),
+            plt.annotate(word, alpha=0.3, xy=(x[i], y[i]), xytext=(5, 2),
                          textcoords='offset points', ha='right', va='bottom', size=6)
     #plt.legend(loc=4)
     plt.legend(bbox_to_anchor=(1.04, 0.5), loc="center left", borderaxespad=0)
     plt.title(title)
     plt.grid(True)
-    #if filename:
-     #  plt.savefig(filename, format='png', dpi=150, bbox_inches='tight')
+    if filename:
+       plt.savefig(filename, format='png', dpi=150, bbox_inches='tight')
     plt.show()

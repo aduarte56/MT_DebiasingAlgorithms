@@ -1,3 +1,6 @@
+import itertools
+import scipy.misc as misc
+import scipy
 from tqdm import tqdm
 from collections import defaultdict
 from sklearn.cluster import KMeans
@@ -178,7 +181,7 @@ def cluster_and_evaluate(X, random_state, y_true, num=2):
 # RANDOM WORDS TEST
 #############################
 from collections import defaultdict
-
+#Getting the similar words the gensim way for sanity checks
 #the function uses gensim .most_similar() method to find the top-N most similar words to a given word
 def finding_neighbors_before_after(word_list, original_model, debiased_model, topn=3):
     """"
@@ -200,7 +203,7 @@ def finding_neighbors_before_after(word_list, original_model, debiased_model, to
               words_before, words_after))
     return neighbors_per_word
 
-#Get the embeddings of the neighbors from the words in the word_list
+#Get the embeddings of the neighbors from the words in the word_list for plotting!
 def get_embeddings_neighbors(keys,original_model, model_cleaned, topn):
     """"
     Function to get the embeddings of the neighbors from the words in the word_list
@@ -288,8 +291,6 @@ def get_k_nearest_neighbors(list_words, dict_vect, vocab, vectors, w2i, k=10):
     return k_neigh
 
 #get a list of the neighbors for each word of the dictionary k_neigh
-
-
 def get_list_neighbors(k_neigh):
     """"
     Function to get a list of the neighbors for each word of the dictionary k_neigh
@@ -304,11 +305,11 @@ def get_list_neighbors(k_neigh):
 #function to get the frequency of the original neighbors among the 50 nearest neighbors of selected words
 
 
-def get_frequency_original_neighbors(list_words, list_neigh, dict_vect_debiased, vocab_debiased, vectors_debiased, w2i_debiased, neighbours_num=50):
+def get_frequency_original_neighbors(list_words, dict_neigh, dict_vect_debiased, vocab_debiased, vectors_debiased, w2i_debiased, neighbours_num=50):
     """"
     Function to get the frequency of the original neighbors among the 50 nearest neighbors of selected words
     :param list_words: list of words to compute the bias for
-    :param list_neigh: list of the neighbors for each word of the dictionary k_neigh
+    :param dict_neigh: dictionary with the random words as keys and the list of tuples of their neighbors and their similarity 
     :param dict_vect_debiased: dictionary of words and their embeddings
     :param vocab_debiased: list of words in the vocabulary
     :param vectors_debiased: list of embeddings
@@ -320,69 +321,27 @@ def get_frequency_original_neighbors(list_words, list_neigh, dict_vect_debiased,
     for idx, word in tqdm(enumerate(list_words)):
         #get the top 50 neighbors of the word
         _, top = get_topK_neighbors(word, dict_vect_debiased, vocab_debiased, vectors_debiased, w2i_debiased,
-                      k=neighbours_num)
+                                    k=neighbours_num)
 
         count = 0
         #check if the original neighbors are in the top 50
         for t in top:
-            if t in list_neigh[idx]:
-                print(t)
+            org_neighs = [neigh_tuple[0] for neigh_tuple in dict_neigh[word]]
+
+            if t in org_neighs:
+                #print(t)
                 count += 1
 
         scores.append([word, count, count/neighbours_num])
         #print(top)
     return scores
 
-#Create a function to get the average distance of the neighbors of a word in the debiased embeddings to their possition in the original embeddings
-def getting_neighbor_av_distance_debiased(neighbors, dict_vectors, debiased_dict):
-    """"
-    Function to get the average distance of the neighbors of a word in the debiased embeddings to their possition in the original embeddings
-    :param neighbors: list of the neighbors for each word of the dictionary k_neigh
-    :param dict_vectors: dictionary of words and their embeddings
-    :param debiased_dict: dictionary of words and their debiased embeddings
-    :return: average distance of the neighbors of a word in the debiased embeddings to their possition in the original embeddings
-    """
-    distances = []
-    for n in neighbors:
-        distances.append(cosine_similarity(debiased_dict[n], dict_vectors[n]))
-    return np.mean(distances)
-
-
-#Create a function to get the average distance of the neighbors of a word from the word itself
-def gettng_neighbor_av_distance(word, neighbors, vectors, word2idx):
-    """"
-    Function to get the average distance of the neighbors of a word from the word itself
-    :param word: word to compute the bias for
-    :param neighbors: list of the neighbors for each word of the dictionary k_neigh
-    :param vectors: list of embeddings
-    :param word2idx: dictionary of words and their indices
-    :return: average distance of the neighbors of a word from the word itself
-    """
-    distances = []
-    for n in neighbors:
-        distances.append(np.linalg.norm(
-            vectors[word2idx[word]] - vectors[word2idx[n]]))
-    return np.mean(distances)
-
-#get dataframe of distances from distances_original and distances_debiased
-
-
-def get_df_distances(distances_original, distances_debiased):
-    df = pd.DataFrame()
-    for word in distances_original.keys():
-        for i in range(len(distances_original[word])):
-            #df=df.append({'word':word, 'neighbor':distances_original[word][i][0], 'distance_original':distances_original[word][i][1], 'distance_debiased':distances_debiased[word][i][1]}, ignore_index=True)
-            df = pd.concat([df, pd.DataFrame.from_records([{'word': word, 'neighbor': distances_original[word][i][0],
-                           'distance_original':distances_original[word][i][1], 'distance_debiased':distances_debiased[word][i][1]}])], ignore_index=True)
-
-    return df
 
 #getting average cosine distance to neighbors before and after debiasing
-def get_distance_to_neighbors(random_words, list_neigh, dict_vectors, debiased_dict):
+def get_distance_to_neighbors(k_neigh_original, dict_vectors, debiased_dict):
     """"
     Function to get the average cosine distance to neighbors before and after debiasing
-    :param random_words: list of words to compute the bias for
-    :param list_neigh: list of the neighbors for each word of the dictionary k_neigh
+    :param k_neigh_original: dictionary or original neighbors
     :param dict_vectors: dictionary of words and their embeddings
     :param debiased_dict: dictionary of words and their debiased embeddings
     :return: average cosine distance to neighbors before and after debiasing
@@ -390,62 +349,77 @@ def get_distance_to_neighbors(random_words, list_neigh, dict_vectors, debiased_d
     distances_original = {}
     distances_debiased = {}
     #loop through the random words
-    for i, word in enumerate(random_words):
+    #if len(random_words) != len(list_neigh):
+    #        print('The length of the list of random words and the list of neighbors is not the same')
+    #   random_words=[word for word in list_neigh]
+    for r_word in k_neigh_original.keys():
         dist1 = []
         dist2 = []
         #loop through the neighbors of the word
-        for neigh in list_neigh[i]:
+        for list in k_neigh_original[r_word]:
             #add the word and its cosine distance in the original embeddings to the list
+            neigh = list[0]
             dist1.append(
-                [neigh, 1-cosine_similarity(dict_vectors[word], dict_vectors[neigh])])
+                [neigh, 1-cosine_similarity(dict_vectors[r_word], dict_vectors[neigh])])
             #add the word and its cosine distance in the debiased embeddings to the list
             dist2.append(
-                [neigh, 1-cosine_similarity(debiased_dict[word], debiased_dict[neigh])])
+                [neigh, 1-cosine_similarity(debiased_dict[r_word], debiased_dict[neigh])])
         #add the list of distances to the dictionary
-        distances_original[word] = dist1
-        distances_debiased[word] = dist2
-
+        distances_original[r_word] = dist1
+        distances_debiased[r_word] = dist2
     return distances_original, distances_debiased
 
-#############################
-# MAC SCORES
-#############################
-
-from scipy import spatial
-import numpy as np
-
-#Function adapted from by Manzini et al. (2018)
-def s_function_for_t_word(dict_vectors, target_word, attributes):
-    """"
-    Function to compute the mean cosine distances between the target word and the attributes
-    :param dict_vectors: dictionary of words and their embeddings
-    :param target_word: word to compute the bias for
-    :param attributes: list of attributes
-    :return: mean cosine distances between the target word and the attributes
-    """
-    attribute_vectors = np.array([dict_vectors[attribute]
-	                               for attribute in attributes])
-    target_vector = dict_vectors[target_word]
-    cosine_distances = spatial.distance.cdist([target_vector], attribute_vectors, metric='cosine').flatten()
-    return cosine_distances.mean()
+#get dataframe of distances from distances_original and distances_debiased
+def get_df_distances(distances_original,distances_debiased):
+    df=pd.DataFrame()
+    for word in distances_original.keys():
+        for i in range(len(distances_original[word])):
+            #df=df.append({'word':word, 'neighbor':distances_original[word][i][0], 'distance_original':distances_original[word][i][1], 'distance_debiased':distances_debiased[word][i][1]}, ignore_index=True)
+            df=pd.concat([df, pd.DataFrame.from_records([{'word':word, 'neighbor':distances_original[word][i][0], 'distance_original':distances_original[word][i][1], 'distance_debiased':distances_debiased[word][i][1]}])], ignore_index=True)
+            
+    return df
 
 
-def multiclass_evaluation_MAC(dict_vectors, targets_list, attributes):
-    """"
-    Function to compute the MAC score
-    :param dict_vectors: dictionary of words and their embeddings
-    :param targets_list: list of target words
-    :param attributes: list of attributes
-    :return: MAC score and evaluation score
-    """
-    
-    targets_eval = []
-    for targetSet in targets_list:
-        for target in targetSet:
-            for attributeSet in attributes:
-                targets_eval.append(s_function_for_t_word(dict_vectors, target, attributeSet))
-    m_score = np.mean(targets_eval)
-    return m_score, targets_eval
+#create a function to run the whole process of getting the neighbors of the original vectors and the debiased vectors and then getting the average distance to neighbors before and after debiasing for random words 1000 times
+# return a dataframe with the average distance to neighbors before and after debiasing for each iteration
+def get_df_random_words_neighbor_analysis(vocab_cleaned, dict_vects,vectors_cleaned, word2idx_cleaned, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2, size_random_set=2):
+
+    random_words = np.random.choice(vocab_cleaned, size=size_random_set)
+    #get the neighbors of the original vectors
+    k_neigh_original = get_k_nearest_neighbors(
+        random_words, dict_vects, vocab_cleaned, vectors_cleaned, word2idx_cleaned, k=k)
+
+    #get the distances to neighbors before and after debiasing
+    distances_original, distances_debiased = get_distance_to_neighbors(k_neigh_original,
+                                                                       dict_vects, deb_dict)
+    #get dataframe of distances from distances_original and distances_debiased
+    df_neigh_distances = get_df_distances(
+        distances_original, distances_debiased)
+    #use df_neigh_distances to get the average distance original and distance debiased for each word using pandas
+    df_average = df_neigh_distances[[
+        'word', 'distance_original', 'distance_debiased']].groupby('word').mean()
+
+    #frequencies of neighbors
+    neig_freq2 = get_frequency_original_neighbors(
+        random_words, k_neigh_original, deb_dict, deb_vocab, deb_vect, deb_word2idx, neighbours_num=k)
+    df2 = pd.DataFrame(neig_freq2, columns=[
+                       'word', 'previous_neighbours', 'freq'])
+    #merge the two dataframes on the word column
+    df_merged = df2.merge(df_average, on='word')
+
+    return df_merged
+
+#get function to get the values of the average distance to neighbors before and after debiasing for each iteration
+
+
+def get_df_random_words_neighbor_analysis_values(vocab, dict_vects,vects,word2idx, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2, num_iterations=1000, size_random_set=2):
+    grand_df = pd.DataFrame()
+    for i in range(num_iterations):
+        df1 = get_df_random_words_neighbor_analysis(vocab, dict_vects, vects, word2idx, deb_dict, deb_vocab,
+                                                    deb_vect, deb_word2idx, k=k, size_random_set=size_random_set)
+        df1['iteration'] = i
+        grand_df = pd.concat([grand_df, df1])
+    return grand_df
 
 #############################
 # BIAS BY NEIGHBORHOOD
@@ -476,3 +450,91 @@ def calculate_bias_by_clustering(model_original, model_debiased, biased_words, t
         scores_after.append(neighbors_biased_after)
     print("avg. number of biased neighbors before: {}; after: {}".format(
         np.mean(scores_before), np.mean(scores_after)))
+
+
+#############################
+# TWO SAMPLE PERMUTATION TEST FOR NEIGHBOR DISTRIBUTION.
+#############################
+# This test is used to test whether the distribution of neighbors of a word is significantly different before and after debiasing.
+# The test is based on the two sample permutation test for equality of distributions.
+# The test is an adaptation from the permutation test proposed by Caliskan et al. (2017) for the WEAT test. 
+# The code is an adaptation from the interpretation from Gonen et al. (2019) of the permutation test for the WEAT test.
+
+def similarity(word_dict, word1, word2):
+
+    vec1 = word_dict[word1]
+    vec2 = word_dict[word2]
+
+    return cosine_similarity(vec1, vec2)
+
+
+def s_word(word, original_neighbors, dic_vectors, dict_debiased, all_s_words):
+
+    if word in all_s_words:
+        return all_s_words[word]
+
+    mean_a = []
+    mean_b = []
+
+    for a in original_neighbors:
+        mean_a.append(similarity(dic_vectors, word, a))
+    for b in original_neighbors:
+        mean_b.append(similarity(dict_debiased, word, b))
+
+    mean_a = sum(mean_a)/float(len(mean_a))
+    mean_b = sum(mean_b)/float(len(mean_b))
+    #print('mean_a:',mean_a)
+    #print('mean_b:',mean_b)
+    all_s_words[word] = [mean_a, mean_b]
+
+    return all_s_words[word]
+
+
+def s_group(random_words, original_neighbors, dic_vectors,
+            dict_debiased, all_s_words):
+
+    mean_A = float()
+    mean_B = float()
+
+    total = 0
+
+    for x in random_words:
+        mean_A += s_word(x, original_neighbors, dic_vectors,
+                         dict_debiased, all_s_words)[0]
+
+    for y in random_words:
+        mean_B += s_word(y, original_neighbors, dic_vectors,
+                         dict_debiased, all_s_words)[1]
+
+    #print('meanA:',mean_A)
+    #print('mean_B:', mean_B)
+
+    total = (mean_A-mean_B)/float(len(random_words))
+    #print(total)
+
+    return total
+
+
+def p_value_perm_neighs(random_words, original_neighbors, dic_vectors,
+                        dict_debiased):
+
+    np.random.seed(42)
+    length = 50
+    differences = []
+    all_s_words_original = {}
+    s_orig = s_group(random_words, original_neighbors, dic_vectors,
+                     dict_debiased, all_s_words_original)
+    num_of_samples = min(int(scipy.special.comb(50*2, 50)), int(length**2)*100)
+    print('original mean:', s_orig)
+    print('num of samples', num_of_samples)
+    larger = 0
+    for i in tqdm(range(num_of_samples)):
+        all_s_words = {}
+        Xi = np.random.permutation(original_neighbors)[:length]
+        #print(s_group(random_words, Xi, dic_vectors,
+        #             dict_debiased, all_s_words))
+        if abs(s_group(random_words, Xi, dic_vectors,
+                       dict_debiased, all_s_words)) > abs(s_orig):  # absolute value because it is a two sample permutation test
+            larger += 1
+
+    return larger/float(num_of_samples)
