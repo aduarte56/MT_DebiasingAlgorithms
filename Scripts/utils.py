@@ -239,3 +239,45 @@ def getting_biased_words(gender_bias_original, definitional_pairs, size, word2id
     for idx, w in enumerate(c_vocab):
         c_w2i[w] = idx
     return c_w2i, c_vocab, female_words, male_words, y_true
+
+
+#get a dataframe with the bias scores of the female_words_emb and male_words_emb in the similarity, similarity_centralized and simple_gender_bias
+def get_df_bias_all_scores(word_list, similarity, similarity_centralized, simple_bias_score):
+    scores = {}
+    for word in word_list:
+        scores[word] = {"similarity_score": (similarity[word]),
+                        "centralized_similarity_score": (similarity_centralized[word]),
+                        "simple_bias_score": simple_bias_score[word]}
+    df = pd.DataFrame.from_dict(scores, orient='index')
+    return df
+
+
+
+#get a dataframe with the bias scores of the female_words_emb and male_words_emb in the similarity, similarity_centralized and simple_gender_bias
+def get_df_bias_scores(word_list, similarity_centralized, simple_bias_score):
+    scores = {}
+    for word in word_list:
+        scores[word] = {"centralized_similarity_score": (similarity_centralized[word]),
+                        "simple_bias_score": simple_bias_score[word]}
+    df = pd.DataFrame.from_dict(scores, orient='index')
+    return df
+
+
+#function to get the most biased words in dict_vec_cleaned rated my similarity to the bias direction
+def get_most_biased_words_similarity(similarity, n_words=2500):
+    #get the absolute values of the similarity values
+    similarity = {word: abs(sim) for word, sim in similarity.items()}
+    #sort the similarity values
+    sorted_similarity = sorted(
+        similarity.items(), key=itemgetter(1), reverse=True)
+    biased_words = [word for word, bias in sorted_similarity[:n_words]]
+    neutral_words = [word for word, bias in sorted_similarity[-n_words:]]
+    return biased_words, neutral_words
+
+
+#get a dataframe from dic_similarity
+def get_dataframe_from_dict(dict_similarity):
+    df = pd.DataFrame.from_dict(dict_similarity, orient='index')
+    df = df.reset_index()
+    df = df.rename(columns={'index': 'percentage'})
+    return df

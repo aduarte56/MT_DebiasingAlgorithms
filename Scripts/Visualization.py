@@ -1,3 +1,5 @@
+import plotly.graph_objects as go
+import plotly_express as px
 import plotly.express as px
 from sklearn.cluster import KMeans
 from sklearn.manifold import TSNE
@@ -29,7 +31,10 @@ def plot_bias_bar(df_long, plot_title,words_title):
   #takes a DF with 3 columns: index, value, variable that corresponf to occupations, gender bias score, and embedding
   fig=px.bar(df_long, x="value",y="index", color="variable", orientation="h", barmode="group",
            labels=dict(title=plot_title, index=words_title, value="Gender Bias", variable="Embeddings"),
-           height=1000, width=800) 
+           height=1000, width=800,
+           template='ggplot2',
+             color_discrete_sequence=["rgb(246,0,0)", "rgb(0,118,101)"]
+           ) 
   fig.update_xaxes(range=[-0.5,0.5])
   #fig.write_image("dataDoubleHard/barplot.png")
   return fig.show()
@@ -55,6 +60,22 @@ def plot_bias_bar_direct_bias(df_long, plot_title, words_title):
   return fig.show()
 
 
+#plot a bar plot of the top 20 most biased words with all the scores of the three methods
+
+
+def plot_top_biased_words(df, plt_title, n_words=20):
+    df_top = df.head(n_words)
+    #remove the simple_bias_score column
+    #df_top = df_top.drop(columns=['simple_bias_score'])
+    df_top = df_top.reset_index()
+    df_top = df_top.rename(columns={'index': 'word'})
+    df_top = df_top.melt(
+        id_vars=['word'], var_name='score_type', value_name='score')
+    fig = px.bar(df_top, x="score", y="word",
+                 color="score_type", barmode="group", orientation='h',
+                 height=1000, width=800, title=plt_title)
+
+    fig.show()
 #######################################################################
 ## VISUALIZE WORD CLUSTERS
 ########################################################################
@@ -170,6 +191,12 @@ def compute_v_measure(vecs, labels_true, k=2):
     
 
 
+############################################
+## PLOTS NEIGHBORS
+    ############################################
+
+
+
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 #plots the t-SNE visualization of neighbor clusters to chosen words
@@ -202,3 +229,44 @@ def tsne_plot_similar_words(title, labels, embedding_clusters, word_clusters, a,
     if filename:
        plt.savefig(filename, format='png', dpi=150, bbox_inches='tight')
     plt.show()
+
+
+def plot_frequency_original_neighbors(df_freq, title_plot, xlabel):
+    """
+    Function to plot the frequency of the original neighbors in the debiased embeddings
+    """
+    fig = px.bar(df_freq, x='word', y='freq', title='Proportion of original 50 neighbours in the debiased k-vicinity of each word',
+                 labels=dict(title=title_plot, freq='Proportion', word=xlabel),
+                 height=500, width=1000, 
+                 template='ggplot2',
+                 color_discrete_sequence=['#424249']*len(df_freq)
+                 )
+    #update the layout of the plot: update the y axis to be between 0 and 0.5 and the x axis to include all ticks
+    fig.update_layout(yaxis=dict(range=[0, 1]))
+
+    fig.show()
+
+
+#plot the average distance to neighbors before and after debiasing
+
+
+def plot_average_distance(df_average, title_plot, xlabel):
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df_average.word,
+                         y=df_average['distance_original'], name='Original Embeddings',
+                         marker_color='#b2868e'))
+    fig.add_trace(go.Bar(x=df_average.word,
+                         y=df_average['distance_debiased'], name='Debiased Embeddings',
+                         marker_color='#046f94'))
+    #add title  to the plot
+    fig.update_layout(
+        title_text=title_plot, template='ggplot2', barmode='group')
+    #change x axis title
+    fig.update_xaxes(title_text=xlabel)
+    #change y axis title
+    fig.update_yaxes(title_text='Average Cosine Distance to Neighbors')
+    #update heigh and width
+    fig.update_layout(height=500, width=1200)
+    fig.show()
+
+

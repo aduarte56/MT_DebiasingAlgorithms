@@ -1,3 +1,5 @@
+from sklearn.manifold import TSNE
+from Scripts.utils import *
 import itertools
 import scipy.misc as misc
 import scipy
@@ -60,10 +62,10 @@ def compute_similarity_to_bias_direction(dict_vec_cleaned, bias_direction):
     :param bias_direction: bias direction
     :return: dictionary of words and their similarity to the bias direction
     """
-    bias_direction = bias_direction / np.linalg.norm(bias_direction)
+    #bias_direction = bias_direction / np.linalg.norm(bias_direction)
     similarity = {}
     for word in dict_vec_cleaned.keys():
-        dict_vec_cleaned[word] = dict_vec_cleaned[word] / np.linalg.norm(dict_vec_cleaned[word])
+    #    dict_vec_cleaned[word] = dict_vec_cleaned[word] / np.linalg.norm(dict_vec_cleaned[word])
         similarity[word] = cosine_similarity(bias_direction, dict_vec_cleaned[word]).astype(float)
     return similarity
 
@@ -235,6 +237,20 @@ def get_embeddings_neighbors(keys,original_model, model_cleaned, topn):
     return embedding_clusters, db_embedding_clusters, word_clusters
 
 
+def get_vectors_for_tsne(keys, model_original, model_debiased, k=50):
+
+    embedding_clusters, db_embedding_clusters, word_clusters = get_embeddings_neighbors(
+        keys, model_original, model_debiased, k)
+
+    n, m, k = embedding_clusters.shape
+    tsne_model_en_2d = TSNE(perplexity=2, n_components=2,
+                            init='pca', n_iter=3500, random_state=42)
+    embeddings_en_2d = np.array(tsne_model_en_2d.fit_transform(
+        embedding_clusters.reshape(n * m, k))).reshape(n, m, 2)
+    db_embeddings_en_2d = np.array(tsne_model_en_2d.fit_transform(
+        db_embedding_clusters.reshape(n * m, k))).reshape(n, m, 2)
+    return embeddings_en_2d, db_embeddings_en_2d, word_clusters
+
 #Function to find the top-k most similar words to a given word using the cosine similarity
 def get_topK_neighbors(word, dict_vect, vocab, vectors, w2i, k=10):
     """"
@@ -382,9 +398,22 @@ def get_df_distances(distances_original,distances_debiased):
 
 #create a function to run the whole process of getting the neighbors of the original vectors and the debiased vectors and then getting the average distance to neighbors before and after debiasing for random words 1000 times
 # return a dataframe with the average distance to neighbors before and after debiasing for each iteration
-def get_df_random_words_neighbor_analysis(vocab_cleaned, dict_vects,vectors_cleaned, word2idx_cleaned, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2, size_random_set=2):
+def get_df_random_words_neighbor_analysis(random_words,vocab_cleaned, dict_vects,vectors_cleaned, word2idx_cleaned, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2):
+    """"
+    Function to run the whole process of getting the neighbors of the original vectors and the debiased vectors and then getting the average distance to neighbors before and after debiasing for random words 1000 times
+    :param vocab_cleaned: list of words in the vocabulary
+    :param dict_vects: dictionary of words and their embeddings
+    :param vectors_cleaned: list of embeddings
+    :param word2idx_cleaned: dictionary of words and their indices
+    :param deb_dict: dictionary of words and their debiased embeddings
+    :param deb_vocab: list of words in the debiased vocabulary
+    :param deb_vect: list of debiased embeddings
+    :param deb_word2idx: dictionary of words and their indices in the debiased vocabulary
+    :param k: number of neighbors to find
+    :param size_random_set: number of random words to select
+    :return: dataframe with the average distance to neighbors before and after debiasing for each iteration
+    """
 
-    random_words = np.random.choice(vocab_cleaned, size=size_random_set)
     #get the neighbors of the original vectors
     k_neigh_original = get_k_nearest_neighbors(
         random_words, dict_vects, vocab_cleaned, vectors_cleaned, word2idx_cleaned, k=k)
@@ -412,11 +441,12 @@ def get_df_random_words_neighbor_analysis(vocab_cleaned, dict_vects,vectors_clea
 #get function to get the values of the average distance to neighbors before and after debiasing for each iteration
 
 
-def get_df_random_words_neighbor_analysis_values(vocab, dict_vects,vects,word2idx, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2, num_iterations=1000, size_random_set=2):
+def get_df_random_words_neighbor_analysis_values(list_for_random, vocab, dict_vects,vects,word2idx, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2, num_iterations=1000, size_random_set=2):
     grand_df = pd.DataFrame()
     for i in range(num_iterations):
-        df1 = get_df_random_words_neighbor_analysis(vocab, dict_vects, vects, word2idx, deb_dict, deb_vocab,
-                                                    deb_vect, deb_word2idx, k=k, size_random_set=size_random_set)
+        random_words = np.random.choice(list_for_random, size=size_random_set)
+        df1 = get_df_random_words_neighbor_analysis(random_words, vocab, dict_vects, vects, word2idx, deb_dict, deb_vocab,
+                                                    deb_vect, deb_word2idx, k=k)
         df1['iteration'] = i
         grand_df = pd.concat([grand_df, df1])
     return grand_df
@@ -450,6 +480,28 @@ def calculate_bias_by_clustering(model_original, model_debiased, biased_words, t
         scores_after.append(neighbors_biased_after)
     print("avg. number of biased neighbors before: {}; after: {}".format(
         np.mean(scores_before), np.mean(scores_after)))
+
+
+def bias_by_neighbors(bias_original, bias_in_debiased, word_list, dict_vect, vocab, vectors, w2i, neighbours_num=100):
+
+    tuples = []
+    for word in tqdm(word_list):
+
+        _, top = get_topK_neighbors(
+            word, dict_vect, vocab, vectors, w2i, k=neighbours_num)
+
+        m = 0
+        f = 0
+        for t in top:
+            if bias_original[t] > 0:
+                f += 1
+            else:
+                m += 1
+
+        tuples.append(
+            (word, bias_original[word], bias_in_debiased[word], f, m))
+
+    return tuples
 
 
 #############################
@@ -538,3 +590,101 @@ def p_value_perm_neighs(random_words, original_neighbors, dic_vectors,
             larger += 1
 
     return larger/float(num_of_samples)
+
+
+
+##############################
+# WEFAT
+###############################
+#WEAT
+# Auxiliary functions for experiments by Caliskan et al.
+
+
+def s_word_weat(word_dict, w, A, B, all_s_words):
+
+    if w in all_s_words:
+        return all_s_words[w]
+
+    mean_a = []
+    mean_b = []
+
+    for a in A:
+        mean_a.append(similarity(word_dict, w, a))
+    for b in B:
+        mean_b.append(similarity(word_dict, w, b))
+
+    mean_a = sum(mean_a)/float(len(mean_a))
+    mean_b = sum(mean_b)/float(len(mean_b))
+
+    all_s_words[w] = mean_a - mean_b
+
+    return all_s_words[w]
+
+
+def s_group_weat(word_dict, X, Y, A, B, all_s_words):
+
+    total = 0
+    for x in X:
+        total += s_word_weat(word_dict, x, A, B, all_s_words)
+    for y in Y:
+        total -= s_word_weat(word_dict, y, A, B, all_s_words)
+
+    return total
+
+
+def p_value_exhust_weat(word_dict, X, Y, A, B):
+
+    if len(X) > 20:
+        print('might take too long, use sampled version: p_value')
+        return
+
+    assert(len(X) == len(Y))
+
+    all_s_words = {}
+    s_orig = s_group_weat(word_dict, X, Y, A, B, all_s_words)
+
+    union = set(X+Y)
+    subset_size = len(union)/2
+
+    larger = 0
+    total = 0
+    for subset in tqdm(set(itertools.combinations(union, int(subset_size)))):
+        total += 1
+        Xi = list(set(subset))
+        Yi = list(union - set(subset))
+        if s_group_weat(word_dict, Xi, Yi, A, B, all_s_words) > s_orig:
+            larger += 1
+    print('num of samples', total)
+    #print(all_s_words)
+    return larger/float(total)
+
+
+def p_value_sample_weat(word_dict, X, Y, A, B):
+
+    np.random.seed(42)
+
+    all_s_words = {}
+
+    assert(len(X) == len(Y))
+    length = len(X)
+
+    s_orig = s_group_weat(word_dict, X, Y, A, B, all_s_words)
+
+    num_of_samples = min(1000000, int(
+        scipy.special.comb(length*2, length)*100))
+    print('num of samples', num_of_samples)
+    larger = 0
+    for i in range(num_of_samples):
+        permute = np.random.permutation(X+Y)
+        Xi = permute[:length]
+        Yi = permute[length:]
+        if s_group_weat(word_dict, Xi, Yi, A, B, all_s_words) > s_orig:
+            larger += 1
+
+    return larger/float(num_of_samples)
+
+
+##############################
+### TESTING DIFFERENT PARAMETERS ON THE HD ALGORITHM
+###############################
+
