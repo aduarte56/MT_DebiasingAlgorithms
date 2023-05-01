@@ -1,3 +1,28 @@
+"""
+@author: angeladuartepardo
+
+This script contains the functions to process embeddings and distances. Includes also functions to change formats and to get biased words. 
+
+This file can also be imported as a module and contains the following
+functions:
+    * get_pairs_from_equalizing_sets - to get the pairs of words from the equalizing sets
+    * get_pairs - to get the pairs of words from to different definitional sets.
+    * prepare_def_sets_subspace - to prepare the definitional sets for the subspace method
+    * get_words_from_pairs - to get the words from the pairs of words
+    * cosine_similarity - to get the cosine similarity between two vectors
+    * extract_vectors- to extract selected vectors from the embeddings
+    * remove_vector_projection - to remove the orthogonal projection of a vector on another vector
+    * normalize - to normalize an array of vectors
+    * perform_PCA_pairs - to perform PCA on the pairs of words
+    * getting_biased_words - to get the most biased words from the embeddings according to the simple bias score
+    * get_df_bias_all_scores- to get the bias scores for all the words in the embeddings into a df
+    * get_df_bias_scores - to get the centralized and simple bias scores for the biased words in the embeddings into a df
+    * get_most_biased_words_similarity - to get the most biased words from the embeddings according to the similarity bias score
+    * get_dataframe_from_dict - to get a dataframe from a dictionary
+
+    
+"""
+
 from sklearn.decomposition import PCA      # PCA library
 from itertools import product
 import numpy as np
@@ -14,7 +39,7 @@ from itertools import product
 #Function to get the pairs of words from the equalizing sets
 def get_pairs_from_equalizing_sets(def_sets):
     """"
-    Gets the pairs of words from the equalizing sets
+    Gets the pairs of words from the equalizing sets in the right format
     ----
     :param def_sets: list of lists of words
     :return: list of pairs of words
@@ -40,7 +65,7 @@ def get_pairs_from_equalizing_sets(def_sets):
 #Function to get the pairs of words from to different definitional sets.
 def get_pairs(p1, p2):
     """"
-    Gets the pairs of words from lists of lists of words
+    Gets a list of pairs from lists of lists of words
     ----
     :param p1: list of words
     :param p2: list of words
@@ -106,7 +131,7 @@ def extract_vectors(words, vectors, w2i):
     :param words: list of words
     :param vectors: word vectors
     :param w2i: dictionary of words and their indices
-    :return: list of vectors
+    :return: array of vectors
     """
     
     X = [vectors[w2i[x],:] for x in words]
@@ -185,25 +210,6 @@ def perform_PCA_pairs(pairs, word_vectors, word2index, num_components=2):
     return pca
 
 
-# get main PCA components on descentralized word embeddings
-def get_main_pca_all(word_vectors):
-    """"
-    Gets the main PCA components on descentralized word embeddings
-    ----
-    :param word_vectors: word vectors
-    :return: main PCA components on descentralized word embeddings
-    """
-    #Generating the descentralized word embeddings-
-    word_vectors_mean = np.mean(np.array(word_vectors), axis=0)
-    word_vectors_hat = np.zeros(word_vectors.shape).astype(float)
-
-    for i in range(len(word_vectors)):
-        word_vectors_hat[i, :] = word_vectors[i, :] - word_vectors_mean
-
-    main_pca = PCA()
-    main_pca.fit(word_vectors_hat)
-
-    return main_pca
 
 
 ############################################
@@ -212,13 +218,14 @@ def get_main_pca_all(word_vectors):
 
 def getting_biased_words(gender_bias_original, definitional_pairs, size, word2idx):
     """  
-    Gets the biased words
+    Gets the top biased words accoding to the simple gender bias measure
     ----
     :params gender_bias_original: dictionary of biased words and their bias
     :params definitional_pairs: list of pairs of words
     :params size: size of the biased words
     :params word2idx: dictionary of words and their indices
-    :return: list of biased words
+    -------
+    :return: feminine and masculine biased words with their indicies and the vectors of the biased words. Also the vector of true values for K-means is included
     """
     # Sorting gender_bias_original in the ascending order so that all the female biased words will be at the start and
     # all the male biased words will be at the end.
@@ -243,6 +250,15 @@ def getting_biased_words(gender_bias_original, definitional_pairs, size, word2id
 
 #get a dataframe with the bias scores of the female_words_emb and male_words_emb in the similarity, similarity_centralized and simple_gender_bias
 def get_df_bias_all_scores(word_list, similarity, similarity_centralized, simple_bias_score):
+    """"
+    Creates a df with all the bias scores from a list of words
+    ----
+    :param word_list: list of words
+    :param similarity: similarity score
+    :param similarity_centralized: centralized similarity score
+    :param simple_bias_score: simple bias score
+    :return: dataframe with all the bias scores
+    """
     scores = {}
     for word in word_list:
         scores[word] = {"similarity_score": (similarity[word]),
@@ -255,6 +271,14 @@ def get_df_bias_all_scores(word_list, similarity, similarity_centralized, simple
 
 #get a dataframe with the bias scores of the female_words_emb and male_words_emb in the similarity, similarity_centralized and simple_gender_bias
 def get_df_bias_scores(word_list, similarity_centralized, simple_bias_score):
+    """"
+    Creates a df with the centralized and simple bias scores from a list of words
+    ----
+    :param word_list: list of words
+    :param similarity_centralized: centralized similarity score
+    :param simple_bias_score: simple bias score
+    :return: dataframe with all the bias scores
+    """
     scores = {}
     for word in word_list:
         scores[word] = {"centralized_similarity_score": (similarity_centralized[word]),
@@ -265,6 +289,13 @@ def get_df_bias_scores(word_list, similarity_centralized, simple_bias_score):
 
 #function to get the most biased words in dict_vec_cleaned rated my similarity to the bias direction
 def get_most_biased_words_similarity(similarity, n_words=2500):
+    """"
+    Gets the most biased words in dict_vec_cleaned rated by their similarity to the bias direction
+    ----
+    :param similarity: similarity score
+    :param n_words: number of words to return
+    :return: list of most biased words
+    """
     #get the absolute values of the similarity values
     similarity = {word: abs(sim) for word, sim in similarity.items()}
     #sort the similarity values
@@ -277,6 +308,12 @@ def get_most_biased_words_similarity(similarity, n_words=2500):
 
 #get a dataframe from dic_similarity
 def get_dataframe_from_dict(dict_similarity):
+    """"
+    Creates a dataframe from a dictionary
+    ----
+    :param dict_similarity: dictionary with the similarity scores
+    :return: dataframe with the similarity scores
+    """
     df = pd.DataFrame.from_dict(dict_similarity, orient='index')
     df = df.reset_index()
     df = df.rename(columns={'index': 'percentage'})

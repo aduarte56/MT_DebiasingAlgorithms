@@ -1,3 +1,18 @@
+"""
+@author: angeladuartepardo
+
+This script contains the functions used to evaluate the debiasing procedure and its consequences on the debiasing space.
+I follow the approaches of various authors that are cited along the code. 
+
+This file can also be imported as a module and contains functions for the following evaluations:
+    * Pre/post bias scores - functions to compare pre and post bias scores
+    * random words test - functions to analyze the vicinities of random words
+    * Bias by neighbor - functions to analyze the bias of a word based on their biased neighbors. Follow the approach of Gonen et al. 2019
+    * Two Sample Permutation Test - functions to perform the two sample permutation test
+    * WEFAT - functions to perform the WEFAT test by Caliskan et al. 2017
+"""
+
+
 from sklearn.manifold import TSNE
 from Scripts.utils import *
 import itertools
@@ -9,44 +24,6 @@ from sklearn.cluster import KMeans
 import numpy as np
 from Scripts.utils import cosine_similarity
 import pandas as pd
-
-#############################
-# ANALOGIES
-#############################
-#function to produce analogies between words: A is to B as X is to Y
-
-
-def get_term_analogies(dict_vect, worda, wordb, wordx, include_triplet=False):
-    """
-    Following Bolukbasi et al. the metric to get the analogies is cos(worda-wordb,wordx -wordy). 
-    The following method is an adaptation of the work of jmyao17. 
-    """
-    #initialize the maximum-similarity
-    max_similarity = -10
-    best_word = None
-    #get the vocabulary
-    vocab = list(dict_vect.keys())
-
-    #loop over each word in the vocabulary
-    for word in vocab:
-        # following Nissim et al. one problem with analogies is that they often don't allow for the forth word to be among the first three.
-        # To avoid this, there is a boolean parameter to include the triplet of words in the analogy or not.
-        if include_triplet == True:
-            if word in [worda.lower(), wordb.lower(), wordx.lower()]:
-                pass
-        else:
-            if word in [worda.lower(), wordb.lower(), wordx.lower()]:
-                continue
-        #Calculate the cosine si
-        similarity = cosine_similarity(
-            dict_vect[wordb.lower()]-dict_vect[worda.lower()],   dict_vect[word.lower()]-dict_vect[wordx.lower()])
-
-        #if the similarity is higher than the maximum similarity, update the maximum similarity and the best word
-        if similarity > max_similarity:
-            max_similarity = similarity
-            best_word = word
-
-    return best_word, max_similarity
 
 
 
@@ -95,7 +72,7 @@ def compute_direct_bias(dict_vectors, word_list, bias_subspace):
     :param dict_vectors: dictionary of word vectors
     :param word_list: list of words to compute the bias for
     :param bias_subspace: bias subspace
-    :return: dictionary of words and their bias
+    :return: dictionary of words and their direct bias
     """
     directBias = {}
     word_list = set(word_list)
@@ -111,7 +88,7 @@ def compute_direct_bias(dict_vectors, word_list, bias_subspace):
 #function to compute the average bias of the words in the neutral_words list
 def compute_average_bias(dict_vectors, words_list, bias_subspace):
     """"
-    Funtion to compute the average bias of a list of words
+    Funtion to compute the average direct bias of a list of words
     :param dict_vectors: dictionary of word vectors
     :param words_list: list of words to compute the bias for
     :param bias_subspace: bias subspace
@@ -157,29 +134,6 @@ def get_bias_score_df_from_list(bias_scores_original, debiased_scores, word_list
 
 
 #############################
-# CLUSTERING
-#############################
-
-def cluster_and_evaluate(X, random_state, y_true, num=2):
-    """"
-    function to calculate the alignment of the clusters with the true labels
-    :param X: data to cluster
-    :param random_state: random state
-    :param y_true: true labels
-    :param num: number of clusters
-    :return: kmeans model, predicted labels, data, alignment
-    """
-    kmeans = KMeans(n_clusters=num, random_state=random_state,n_init=10).fit(X)
-    y_pred = kmeans.predict(X)
-    correct = [1 if item1 == item2 else 0 for (item1,item2) in zip(y_true, y_pred) ]
-    alignment = sum(correct)/float(len(correct))
-    max_alignment = max(alignment, 1 - alignment)
-   
-    print(f'Alignment: {max_alignment}')
-    
-    return kmeans, y_pred, X, max_alignment
-
-#############################
 # RANDOM WORDS TEST
 #############################
 from collections import defaultdict
@@ -187,8 +141,8 @@ from collections import defaultdict
 #the function uses gensim .most_similar() method to find the top-N most similar words to a given word
 def finding_neighbors_before_after(word_list, original_model, debiased_model, topn=3):
     """"
-    Function to find the top-N most similar words to a given word before and after debiasing
-    :param word_list: list of words to compute the bias for
+    Function to find the top-N most similar words to a given word before and after debiasing (the gensim way)
+    :param word_list: list of words to get the neighbors from
     :param original_model: original model
     :param debiased_model: debiased model
     :param topn: number of neighbors to find
@@ -208,8 +162,8 @@ def finding_neighbors_before_after(word_list, original_model, debiased_model, to
 #Get the embeddings of the neighbors from the words in the word_list for plotting!
 def get_embeddings_neighbors(keys,original_model, model_cleaned, topn):
     """"
-    Function to get the embeddings of the neighbors from the words in the word_list
-    :param keys: list of words to compute the bias for
+    Function to get the embeddings of the neighbors from the words in the word_list (the gensim way)
+    :param keys: list of words  to get the neighbors from
     :param original_model: original model
     :param model_cleaned: debiased model
     :param topn: number of neighbors to find
@@ -238,7 +192,14 @@ def get_embeddings_neighbors(keys,original_model, model_cleaned, topn):
 
 
 def get_vectors_for_tsne(keys, model_original, model_debiased, k=50):
-
+    """"
+    Function to prepare for plotting the embeddings of the neighbors from the words in the word_list! (the gensim way)
+    :param keys: list of words  to get the neighbors from
+    :param model_original: original model
+    :param model_debiased: debiased model
+    :param k: number of neighbors to find
+    :return: embeddings_en_2d, db_embeddings_en_2d, word_clusters
+    """
     embedding_clusters, db_embedding_clusters, word_clusters = get_embeddings_neighbors(
         keys, model_original, model_debiased, k)
 
@@ -254,11 +215,11 @@ def get_vectors_for_tsne(keys, model_original, model_debiased, k=50):
 #Function to find the top-k most similar words to a given word using the cosine similarity
 def get_topK_neighbors(word, dict_vect, vocab, vectors, w2i, k=10):
     """"
-    Function to find the top-k most similar words to a given word using the cosine similarity
-    :param word: word to compute the bias for
+    Function to find the top-k most similar words to a given word using the cosine similarity (from scratch, inspired by Gonen et al. 2019)
+    :param word: word to compute the neighbors from
     :param dict_vect: dictionary of words and their embeddings
     :param vocab: list of words in the vocabulary
-    :param vectors: list of embeddings
+    :param vectors: array of embeddings
     :param w2i: dictionary of words and their indices
     :param k: number of neighbors to find
     :return: dictionary of words and their neighbors before and after debiasing
@@ -290,7 +251,7 @@ def get_topK_neighbors(word, dict_vect, vocab, vectors, w2i, k=10):
 #get a dictionary with all the k-nearest neighbors for each word in the list
 def get_k_nearest_neighbors(list_words, dict_vect, vocab, vectors, w2i, k=10):
     """"
-    Function to find the top-k most similar words to a list of words using the cosine similarity
+    Function to find the top-k most similar words to a list of words using the cosine similarity (from scratch, inspired by Gonen et al. 2019)
     :param list_words: list of words to compute the bias for
     :param dict_vect: dictionary of words and their embeddings
     :param vocab: list of words in the vocabulary
@@ -319,8 +280,6 @@ def get_list_neighbors(k_neigh):
     return list_neigh
 
 #function to get the frequency of the original neighbors among the 50 nearest neighbors of selected words
-
-
 def get_frequency_original_neighbors(list_words, dict_neigh, dict_vect_debiased, vocab_debiased, vectors_debiased, w2i_debiased, neighbours_num=50):
     """"
     Function to get the frequency of the original neighbors among the 50 nearest neighbors of selected words
@@ -365,9 +324,6 @@ def get_distance_to_neighbors(k_neigh_original, dict_vectors, debiased_dict):
     distances_original = {}
     distances_debiased = {}
     #loop through the random words
-    #if len(random_words) != len(list_neigh):
-    #        print('The length of the list of random words and the list of neighbors is not the same')
-    #   random_words=[word for word in list_neigh]
     for r_word in k_neigh_original.keys():
         dist1 = []
         dist2 = []
@@ -387,6 +343,12 @@ def get_distance_to_neighbors(k_neigh_original, dict_vectors, debiased_dict):
 
 #get dataframe of distances from distances_original and distances_debiased
 def get_df_distances(distances_original,distances_debiased):
+    """"
+    Function to get a dataframe of distances from distances_original and distances_debiased
+    :param distances_original: dictionary of words and their neighbors and cosine distance to them in the original embeddings
+    :param distances_debiased: dictionary of words and their neighbors and cosine distance to them in the debiased embeddings
+    :return: dataframe of distances from distances_original and distances_debiased
+    """
     df=pd.DataFrame()
     for word in distances_original.keys():
         for i in range(len(distances_original[word])):
@@ -396,11 +358,12 @@ def get_df_distances(distances_original,distances_debiased):
     return df
 
 
-#create a function to run the whole process of getting the neighbors of the original vectors and the debiased vectors and then getting the average distance to neighbors before and after debiasing for random words 1000 times
+#create a function to run the whole process of getting the neighbors of the original vectors and the debiased vectors and then getting the average distance to neighbors before and after debiasing for random words
 # return a dataframe with the average distance to neighbors before and after debiasing for each iteration
 def get_df_random_words_neighbor_analysis(random_words,vocab_cleaned, dict_vects,vectors_cleaned, word2idx_cleaned, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2):
     """"
-    Function to run the whole process of getting the neighbors of the original vectors and the debiased vectors and then getting the average distance to neighbors before and after debiasing for random words 1000 times
+    Function to run the whole process of getting the neighbors of the original vectors and the debiased vectors and then getting the average distance to neighbors before and after debiasing for random words
+    :param random_words: list of random words to compute neighbors from
     :param vocab_cleaned: list of words in the vocabulary
     :param dict_vects: dictionary of words and their embeddings
     :param vectors_cleaned: list of embeddings
@@ -411,7 +374,7 @@ def get_df_random_words_neighbor_analysis(random_words,vocab_cleaned, dict_vects
     :param deb_word2idx: dictionary of words and their indices in the debiased vocabulary
     :param k: number of neighbors to find
     :param size_random_set: number of random words to select
-    :return: dataframe with the average distance to neighbors before and after debiasing for each iteration
+    :return: dataframe with the frequencies of previous neighbors and average distance to neighbors before and after debiasing for each iteration
     """
 
     #get the neighbors of the original vectors
@@ -439,9 +402,23 @@ def get_df_random_words_neighbor_analysis(random_words,vocab_cleaned, dict_vects
     return df_merged
 
 #get function to get the values of the average distance to neighbors before and after debiasing for each iteration
-
-
 def get_df_random_words_neighbor_analysis_values(list_for_random, vocab, dict_vects,vects,word2idx, deb_dict, deb_vocab, deb_vect, deb_word2idx, k=2, num_iterations=1000, size_random_set=2):
+    """"
+    Function to get a dataframe with the aggregate values of the neighbor analysis: frequency of previous neighbors and average distance to neighbors before and after debiasing for each iteration
+    :param list_for_random: list of words to compute neighbors from
+    :param vocab: list of words in the vocabulary
+    :param dict_vects: dictionary of words and their embeddings
+    :param vects: list of embeddings
+    :param word2idx: dictionary of words and their indices
+    :param deb_dict: dictionary of words and their debiased embeddings
+    :param deb_vocab: list of words in the debiased vocabulary
+    :param deb_vect: list of debiased embeddings
+    :param deb_word2idx: dictionary of words and their indices in the debiased vocabulary
+    :param k: number of neighbors to find
+    :param num_iterations: number of iterations to run
+    :param size_random_set: number of random words to select
+    :return: dataframe with the frequencies of previous neighbors and average distance to neighbors before and after debiasing for each iteration
+    """
     grand_df = pd.DataFrame()
     for i in range(num_iterations):
         random_words = np.random.choice(list_for_random, size=size_random_set)
@@ -452,15 +429,15 @@ def get_df_random_words_neighbor_analysis_values(list_for_random, vocab, dict_ve
     return grand_df
 
 #############################
-# BIAS BY NEIGHBORHOOD
+# BIAS BY NEIGHBORHOOD. Following Gonen et al.2019
 #############################
 
 
 def calculate_bias_by_clustering(model_original, model_debiased, biased_words, topn):
     """"
-    Function to compute the bias by neighborhood
-    :param model_original: original embeddings
-    :param model_debiased: debiased embeddings
+    Function to compute the bias by neighborhood following the approach of Gonen et al. 2019
+    :param model_original: original embeddings on a Gensim format
+    :param model_debiased: debiased embeddings on a Gensim format
     :param biased_words: list of biased words
     :param topn: number of neighbors to consider
     """
@@ -483,6 +460,18 @@ def calculate_bias_by_clustering(model_original, model_debiased, biased_words, t
 
 
 def bias_by_neighbors(bias_original, bias_in_debiased, word_list, dict_vect, vocab, vectors, w2i, neighbours_num=100):
+    """"
+    Function to compute the bias by neighborhood following the approach of Gonen et al. 2019
+    :param bias_original: original bias dictionary
+    :param bias_in_debiased: debiased bias dictionary
+    :param word_list: list of words to compute the bias by neighborhood
+    :param dict_vect: dictionary of words and their embeddings
+    :param vocab: list of words in the vocabulary
+    :param vectors: list of embeddings
+    :param w2i: dictionary of words and their indices
+    :param neighbours_num: number of neighbors to consider
+    :returns list of word, original and debiased scores, number of feminine and masculine neighbors
+    """
 
     tuples = []
     for word in tqdm(word_list):
@@ -513,6 +502,13 @@ def bias_by_neighbors(bias_original, bias_in_debiased, word_list, dict_vect, voc
 # The code is an adaptation from the interpretation from Gonen et al. (2019) of the permutation test for the WEAT test.
 
 def similarity(word_dict, word1, word2):
+    """"
+    Function to compute the cosine similarity between two words
+    :param word_dict: dictionary of words and their embeddings
+    :param word1: first word
+    :param word2: second word
+    :returns cosine similarity between word1 and word2
+    """
 
     vec1 = word_dict[word1]
     vec2 = word_dict[word2]
@@ -521,7 +517,15 @@ def similarity(word_dict, word1, word2):
 
 
 def s_word(word, original_neighbors, dic_vectors, dict_debiased, all_s_words):
-
+    """"
+    Function to compute the average cosine similarity between a word and its neighbors before and after debiasing. Word statistic.
+    :param word: word to compute the average cosine similarity
+    :param original_neighbors: list of neighbors of the word before debiasing
+    :param dic_vectors: dictionary of words and their embeddings
+    :param dict_debiased: dictionary of words and their debiased embeddings
+    :param all_s_words: dictionary of words and their average cosine similarity before and after debiasing
+    :returns average cosine similarity between a word and its neighbors before and after debiasing
+    """
     if word in all_s_words:
         return all_s_words[word]
 
@@ -544,6 +548,15 @@ def s_word(word, original_neighbors, dic_vectors, dict_debiased, all_s_words):
 
 def s_group(random_words, original_neighbors, dic_vectors,
             dict_debiased, all_s_words):
+    """"
+    Function to compute the average cosine similarity between a group of words and their neighbors before and after debiasing. Group statistic.
+    :param random_words: list of words to compute the average cosine similarity
+    :param original_neighbors: list of neighbors of the word before debiasing
+    :param dic_vectors: dictionary of words and their embeddings
+    :param dict_debiased: dictionary of words and their debiased embeddings
+    :param all_s_words: dictionary of words and their average cosine similarity before and after debiasing
+    :returns average cosine similarity between a group of words and their neighbors before and after debiasing
+    """
 
     mean_A = float()
     mean_B = float()
@@ -569,6 +582,14 @@ def s_group(random_words, original_neighbors, dic_vectors,
 
 def p_value_perm_neighs(random_words, original_neighbors, dic_vectors,
                         dict_debiased):
+    """"
+    Function to compute the p-value of the two sample permutation test for the distribution of neighbors of a word before and after debiasing.
+    :param random_words: list of words to compute the average cosine similarity
+    :param original_neighbors: list of neighbors of the word before debiasing
+    :param dic_vectors: dictionary of words and their embeddings
+    :param dict_debiased: dictionary of words and their debiased embeddings
+    :returns p-value of the two sample permutation test for the distribution of neighbors of a word before and after debiasing
+    """
 
     np.random.seed(42)
     length = 50
@@ -596,11 +617,19 @@ def p_value_perm_neighs(random_words, original_neighbors, dic_vectors,
 ##############################
 # WEFAT
 ###############################
-#WEAT
-# Auxiliary functions for experiments by Caliskan et al.
+# The following functions follow the interpretation that Gonen et al. 2019 give to the WEAT test proposed by Caliskan et al. 2017.
 
-
+# word statistic
 def s_word_weat(word_dict, w, A, B, all_s_words):
+    """"
+    Function to compute the average cosine similarity between a word and two sets of words. Word statistic.
+    :param word_dict: dictionary of words and their embeddings
+    :param w: word to compute the average cosine similarity
+    :param A: list of words
+    :param B: list of words
+    :param all_s_words: dictionary of words and their average cosine similarity
+    :returns average cosine similarity between a word and two sets of words
+    """
 
     if w in all_s_words:
         return all_s_words[w]
@@ -622,6 +651,16 @@ def s_word_weat(word_dict, w, A, B, all_s_words):
 
 
 def s_group_weat(word_dict, X, Y, A, B, all_s_words):
+    """" 
+    Function to compute the average cosine similarity between a group of words and two sets of words. Group statistic.
+    :param word_dict: dictionary of words and their embeddings
+    :param X: list of words to compute the average cosine similarity
+    :param Y: list of words to compute the average cosine similarity
+    :param A: list of words
+    :param B: list of words
+    :param all_s_words: dictionary of words and their average cosine similarity
+    :returns average cosine similarity between a group of words and two sets of words
+    """
 
     total = 0
     for x in X:
@@ -633,6 +672,15 @@ def s_group_weat(word_dict, X, Y, A, B, all_s_words):
 
 
 def p_value_exhust_weat(word_dict, X, Y, A, B):
+    """"
+    Function to compute the p-value of the WEAT test. Is exhaustive because it goes through all possible combinations of X and Y.
+    :param word_dict: dictionary of words and their embeddings
+    :param X: list of words to compute the average cosine similarity
+    :param Y: list of words to compute the average cosine similarity
+    :param A: list of words
+    :param B: list of words
+    :returns p-value of the two sample permutation test for the WEAT test
+    """
 
     if len(X) > 20:
         print('might take too long, use sampled version: p_value')
@@ -660,6 +708,15 @@ def p_value_exhust_weat(word_dict, X, Y, A, B):
 
 
 def p_value_sample_weat(word_dict, X, Y, A, B):
+    """"
+    Function to compute the p-value of the WEAT test. Is sampled because it goes through a sample of all possible combinations of X and Y.
+    :param word_dict: dictionary of words and their embeddings
+    :param X: list of words to compute the average cosine similarity
+    :param Y: list of words to compute the average cosine similarity
+    :param A: list of words
+    :param B: list of words
+    :returns p-value of the two sample permutation test for the WEAT test
+    """
 
     np.random.seed(42)
 
@@ -682,9 +739,3 @@ def p_value_sample_weat(word_dict, X, Y, A, B):
             larger += 1
 
     return larger/float(num_of_samples)
-
-
-##############################
-### TESTING DIFFERENT PARAMETERS ON THE HD ALGORITHM
-###############################
-
