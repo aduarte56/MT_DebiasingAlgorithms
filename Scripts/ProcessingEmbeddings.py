@@ -1,3 +1,17 @@
+"""
+@author: angeladuartepardo
+
+This script contains the functions to instantiate an object of the class word embeddings. It also contains preprocessing functions 
+adapted from Gonen et al, 2019 and Wang, 2021. Their work was addapted to the problem. 
+
+This file can also be imported as a module and contains the following
+functions:
+    * get_debiased_dict - to get a dictionary with the debiased embeddings,  word as key, vector as value.
+    * load_word_vectors - to load the word vectors from the txt file
+    * create_KeyedVectors - creates a gensim KeyedVectors object from the word vectors (to use with gensim functions)
+    * Embeddings (Class) - class to load and clean the embeddings 
+"""
+
 from typing import Dict, List, Tuple, Union
 import numpy as np
 import tqdm
@@ -21,7 +35,6 @@ class Embeddings(object):
         :param file: path to the file with the embeddings
         :param gensim: True if the embeddings are to be downloaded directly from gensim, False if they are to be read from the local file into a gensim object
       """
-      
       if file is None:
             print("Invalid file")
       
@@ -50,7 +63,7 @@ class Embeddings(object):
       """"
         Gets the words and vectors from the model
         ----
-        :param file: model object from which the words and vectors are to be extracted
+        :param file: gensim model object from which the words and vectors are to be extracted
       """
       vectors = model.vectors #list of arrays or vectos
       words = model.index_to_key #list of words
@@ -61,7 +74,7 @@ class Embeddings(object):
 
   def get_word_vector_dict(self):
       """"
-      Gets a dictionry with the words as keys and the vectors as values
+      Gets a dictionary with the words as keys and the vectors as values
       ----
       :param file: model object from which the words and vectors are to be extracted
       :return: dictionary with the words as keys and the vectors as values
@@ -77,7 +90,7 @@ class Embeddings(object):
     Gets the vectors of the words in the list
     ----
     :param list_words: list of words
-    :return: list of vectors
+    :return: array of vectors
     """
     
     #Sale de null-it-out
@@ -92,7 +105,7 @@ class Embeddings(object):
     ----
     :param words: list of words
     :param w2i: dictionary with the words as keys and the indices as values
-    :return: list of vectors
+    :return: array of vectors
     """
     
     X = [self.vectors[w2i[x],:] for x in words]
@@ -112,7 +125,7 @@ class Embeddings(object):
 
   def has_digit(self,word):
     """"
-    Checks if the word contains digits
+    Checks if the word contains digits. The function follows Gonen et al.2019
     ----
     :param word: word
     :return: True if the word contains digits, False otherwise
@@ -123,7 +136,7 @@ class Embeddings(object):
 
   def exclude_punctuation(self, words):
     """"
-    Excludes the words that contain punctuation or digits
+    Excludes the words that contain punctuation or digits. The function follows Gonen et al.2019
     ----
     :param words: list of words
     :return: list of words without punctuation
@@ -146,12 +159,13 @@ class Embeddings(object):
 
   def limit_vocab(self, word_vector, word_index, vocab, exclude = None, exclude_punct = True):
     """"
-    Limits the vocabulary to the words that are not in the exclude list
+    Limits the vocabulary to the words that are not in the exclude list. The function follows Gonen et al.2019
     ----
     :param word_vector: word vectors
     :param word_index: dictionary with the words as keys and the indices as values
     :param vocab: list of words
     :param exclude: list of words to be excluded
+    ----------------
     :return: limited vocabulary, limited word vectors, limited word index, limited dictionary with the words as keys and the vectors as values
     """
     vocab_limited=vocab
@@ -172,7 +186,7 @@ class Embeddings(object):
 
   def save_in_word2vec_format(self, vecs: np.ndarray, words: np.ndarray, fname: str):
     """
-    Saves the vectors in the word2vec format.
+    Saves the vectors in the word2vec format. The function follows Gonen et al.2019
     :param vecs: vectors
     :param words: vocabulary
     :param fname: path to the file where the vectors are to be saved
@@ -188,7 +202,9 @@ class Embeddings(object):
 def load_word_vectors(fname):
     """
     Loads word vectors from a file.
+    ------
     :param fname: path to the file with the embeddings
+    -------
     :return: model:KeyedVectors object, vecs: vectors, words: vocabulary
     """
     model = KeyedVectors.load_word2vec_format(fname, binary=False)
@@ -217,6 +233,7 @@ def get_debiased_dict(wv_debiased, w2i_partial):
    ----
    :param wv_debiased: debiased vectors
    :param w2i_partial: dictionary with the words as keys and the indices as values
+   ----
    :return: dictionary with the debiased vectors as values and the words as keys
    """
    debiased_dict = {}

@@ -34,6 +34,8 @@ def identify_bias_subspace(vector_dict, def_sets, subspace_dim, centralizing=Tru
     def_sets - sets of words that represent the bias subspace
     subspace_dim - number of components for PCA. It is also a parameter that provides the number of vectors defining the bias subspace
     centralizing - boolean that indicates whether the vectors should be centralized before running PCA
+    ----------
+    :return: the PCA components
     """
     # calculate means of defining sets
     means = {}
@@ -82,6 +84,8 @@ def neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction):
     vectors - word embeddings
     w2i_partial - dictionary that maps words to their indices in the vocabulary
     bias_direction - bias subspace
+    ----------
+    :return: the debiased vectors
     """
     #Removes the bias component of words that should be neutral
     debiased_vectors = np.zeros((len(vocab_partial), len(vectors[0, :]))).astype(float)
@@ -92,11 +96,9 @@ def neutralize_words(vocab_partial, vectors, w2i_partial, bias_direction):
     return debiased_vectors
 
 
-
-
 def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_direction):
     """
-    This function equalizes with respect to the neutrality axis, this means that they are centered 
+    This function equalizes words with respect to the neutrality axis, this means that pairs are centered 
     with respect to the origin so that they are equidistant from the neutrality axis. 
     ----------
     Parameters: 
@@ -105,6 +107,8 @@ def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_di
     w2i_partial - dictionary that maps words to their indices in the vocabulary
     bias_direction - bias subspace
     equalizing_list - list of pairs of words that should be equalized
+    ––––––––––
+    :return: the debiased vectors
     """
     debiased_vectors = vectors.copy()
     candidates = set()
@@ -124,6 +128,8 @@ def equalize_words(vectors, vocab_partial, w2i_partial, equalizing_list, bias_di
         debiased_vectors[w2i_partial[b], :] = -z * bias_direction + mean_orth
     return debiased_vectors
 
+
+
 def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
                  equalizing_list, def_sets, subspace_dim, normalize_dir=False, normalize=None, centralizing=True):
     """
@@ -132,15 +138,24 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
     returns the debiased vectors. 
     ----------
     Parameters: 
+    wv - word embeddings
+    vector_dict_partial - dictionary containing words as keys and their embeddings as values
+    def_sets - sets of words that represent the bias subspace
+    subspace_dim - number of components for PCA (ie. dimension of the bias subspace)
+    equalizing_list - list of pairs of words that should be equalized
     vocab_partial - limited vocabulary
     vectors - word embeddings
     w2i_partial - dictionary that maps words to their indices in the vocabulary
     bias_direction - bias subspace
+    ________
+    :return: the debiased vectors, vocabulary, word2idx and dictionary of word embeddings
     """    
+
     vectors=wv.copy()
-    #############################
+
+    #----------------------------
     #1.  getting the bias direction by identifying the direction where the most 'biased' variation happens according to some definitional sets
-    #############################
+    #----------------------------
     bias_direction=identify_bias_subspace(vector_dict_partial, def_sets, subspace_dim, centralizing=centralizing)
 
     if normalize_dir:
@@ -153,9 +168,9 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
     elif bias_direction.ndim != 2:
         raise ValueError("bias subspace should be either a matrix or vector")
     
-    #############################
+    #----------------------------
     #2. Neutralizing the words which should be neutral
-    #############################
+    #----------------------------
     if str(normalize).lower()=="before":
       vectors= utils.normalize(vectors) #Following Andrew Ng's approach
       
@@ -165,9 +180,9 @@ def hard_debias(wv, vector_dict_partial, w2i_partial, vocab_partial,
     if str(normalize).lower()=="after":
       wv_debiased=utils.normalize(wv_debiased) #Following Bolukbasi
      
-    #############################
+    #----------------------------
     #3. Equalizing the biased pairs. 
-    #############################
+    #----------------------------
 
     wv_debiased=equalize_words(wv_debiased, vocab_partial, w2i_partial, equalizing_list, bias_direction)
 
