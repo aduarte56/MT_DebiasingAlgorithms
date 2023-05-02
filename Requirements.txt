@@ -10,3 +10,4 @@ gensim
 pandas
 plotly_express
 mpld3
+kaleido
