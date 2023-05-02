@@ -1,5 +1,4 @@
-# On the promises and costs of bias mitigation in static word embeddings: 
-        an evaluation of the Hard-Debiasing Algorithm
+# On the promises and costs of bias mitigation in static word embeddings: an evaluation of the Hard-Debiasing Algorithm
 
 ## Summary
 
